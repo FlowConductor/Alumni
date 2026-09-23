@@ -1,0 +1,14 @@
+{
+  "name": "mis-alumni-portal",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Alumni tracking system and portal for graduates of Istanbul University, Faculty of Economics, Department of Management Information Systems (MIS)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}

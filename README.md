@@ -110,19 +110,19 @@ The staff-facing side of the tracking system.
 | Layer     | Technology         | Notes                                             |
 |-----------|--------------------|---------------------------------------------------|
 | Frontend  | HTML               | Structure of the user interface                   |
-| Backend   | JavaScript, Node.js| Server-side logic and APIs                        |
+| Backend   | JavaScript, Node.js| Server-side logic and APIs (Express)            |
 | Database  | MySQL              | Relational data storage for alumni records        |
 
-> Note: framework and ORM choices (e.g., Express, Sequelize, or alternatives) are not final. The stack above reflects the confirmed constraints; the exact tooling within each layer will be decided during implementation.
+> Note: the backend uses Express for HTTP routing. The ORM/database tooling and migration setup are **TBD** — until MySQL is integrated, the alumni data is kept in an in-memory store with seed records.
 
 ## Getting Started
 
-> **Important:** This project is in its earliest stage — only the starter routes listed in [Current Routes](#current-routes) are running. The commands below describe the *intended* workflow and will become fully functional as implementation progresses. Items marked **TBD** have not been decided yet.
+> **Important:** The starter routes in [Current Routes](#current-routes) are implemented and running. MySQL is not set up yet, so the `/alumni` endpoints use an in-memory store with seed data for now; the database-related steps below apply once MySQL is available. Items marked **TBD** have not been decided yet.
 
 ### Prerequisites
 
 - **Node.js 18 or later** — download from [nodejs.org](https://nodejs.org) or use your system package manager.
-- **MySQL 8 or later** — download from [mysql.com](https://www.mysql.com) or run via Docker.
+- **MySQL 8 or later** — download from [mysql.com](https://www.mysql.com) or run via Docker (not required yet; see [Database Setup](#database-setup-pending) below).
 - A code editor (recommended: VS Code).
 
 ### Installation
@@ -140,9 +140,19 @@ The staff-facing side of the tracking system.
    npm install
    ```
 
-   *(The exact dependency set and npm scripts are **TBD** until the project structure is created.)*
+3. Run the application:
 
-3. Configure environment variables. Create a `.env` file in the project root:
+   ```bash
+   npm start
+   ```
+
+   The server starts at `http://localhost:3000` (override with the `PORT` environment variable). For development with automatic restart on file changes, use `npm run dev`.
+
+### Database Setup (pending)
+
+MySQL is not integrated yet; the `/alumni` endpoints use an in-memory store with seed records. Once MySQL is available:
+
+1. Create a `.env` file in the project root:
 
    ```env
    DB_HOST=localhost
@@ -150,28 +160,19 @@ The staff-facing side of the tracking system.
    DB_USER=root
    DB_PASSWORD=your_password
    DB_NAME=mis_alumni
-   PORT=3000
    ```
 
-4. Create the database:
+2. Create the database:
 
    ```sql
    CREATE DATABASE mis_alumni;
    ```
 
-   *(Migration and seed scripts are **TBD** — database schema tooling will be chosen during implementation.)*
-
-5. Run the application (intended command):
-
-   ```bash
-   npm start
-   ```
-
-   *(Exact start/dev/test scripts are **TBD** until `package.json` exists.)*
+*(Migration and seed scripts are **TBD** — database schema tooling will be chosen when the MySQL layer is implemented.)*
 
 ### Usage
 
-Once implemented, the intended workflow is:
+The intended end-state workflow is:
 
 1. **Department staff** registers and verifies alumni against graduation records.
 2. **Alumni** sign up, complete their profiles, and get verified.
@@ -180,23 +181,23 @@ Once implemented, the intended workflow is:
 
 ## Current Routes
 
-The backend's initial development server exposes the following starter routes (base URL: `http://localhost`):
+The backend's development server (Express) exposes the following starter routes (base URL: `http://localhost:3000`):
 
 | Method | Route | Description |
 |--------|-------|-------------|
-| GET    | `/`   | Currently returns `"ok"`; will serve as the temporary main page |
-| GET    | `/about` | Temporary about page |
-| GET    | `/alumni` | Get the list of alumni records |
-| POST   | `/alumni` | Create a new alumni record |
+| GET    | `/`   | Returns `"ok"`; will serve as the temporary main page |
+| GET    | `/about` | Temporary about page (HTML) |
+| GET    | `/alumni` | Returns the list of alumni records (JSON; in-memory store with seed data) |
+| POST   | `/alumni` | Creates an alumni record. Request body: `name` (required), `graduationYear` (integer, optional), `email` (optional). Returns `201` with the created record |
 | GET    | `/hello` | Returns `"Hello, World!"` |
 | GET    | `/hello/{name}` | Returns a personalized greeting — e.g. `GET /hello/senol` returns `"Hello, senol!"` |
-| GET    | `/sum/{number1}/{number2}` | Returns the sum of the two numbers — e.g. `GET /sum/2/3` returns `5` |
+| GET    | `/sum/{number1}/{number2}` | Returns the sum as JSON — e.g. `GET /sum/2/3` returns `{"number1":2,"number2":3,"sum":5}` |
 
-These are the first endpoints of the Alumni Directory & Profile Management module (`/alumni`) plus temporary routes used to verify the server is running. They will be extended and reorganized as the modules described in [Key Features](#key-features) are implemented.
+Run the server with `npm start`. The `/alumni` endpoints are the first endpoints of the Alumni Directory & Profile Management module; the remaining routes are temporary and used to verify the server is running. They will be extended and reorganized as the modules described in [Key Features](#key-features) are implemented.
 
 ## Roadmap
 
-Scoping and documentation phase is complete; implementation has not started.
+Scoping, documentation, and the first starter routes are complete; module implementation is pending.
 
 - [x] Project definition and scope (this document)
 - [ ] Alumni Directory & Profile Management
