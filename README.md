@@ -117,7 +117,7 @@ The staff-facing side of the tracking system.
 
 ## Getting Started
 
-> **Important:** The starter routes in [Current Routes](#current-routes) are implemented and running. MySQL is not set up yet, so the `/alumni` endpoints use an in-memory store with seed data for now; the database-related steps below apply once MySQL is available. Items marked **TBD** have not been decided yet.
+> **Important:** The starter routes in [Current Routes](#current-routes) are implemented and running. MySQL is not set up yet, so the `/alumni` endpoints use an in-memory store with seed data, and `/api/users` persists to a local JSON file (`data/users.json`) instead of a database; the database-related steps below apply once MySQL is available. Items marked **TBD** have not been decided yet.
 
 ### Prerequisites
 
@@ -187,7 +187,7 @@ The backend's development server (Express) exposes the following starter routes 
 |--------|-------|-------------|
 | GET    | `/`   | Returns `"ok"`; will serve as the temporary main page |
 | GET    | `/api/health` | Health check; returns JSON with `status`, `uptime` (seconds), and `timestamp` |
-| POST   | `/api/users` | Creates a user (in-memory). Request body: `username` and `email` (both required). Returns `201` with `{"username": "...", "email": "..."}` |
+| POST   | `/api/users` | Creates a user. Request body: `username` and `email` (both required). Returns `201` with `{"username": "...", "email": "..."}`. Users are persisted to `data/users.json` (no database) |
 | GET    | `/about` | Temporary about page (HTML) |
 | GET    | `/alumni` | Returns the list of alumni records (JSON; in-memory store with seed data) |
 | POST   | `/alumni` | Creates an alumni record. Request body: `name` (required), `graduationYear` (integer, optional), `email` (optional). Returns `201` with the created record |

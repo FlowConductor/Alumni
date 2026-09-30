@@ -1,12 +1,7 @@
 const express = require('express');
+const userStore = require('../store/userStore');
 
 const router = express.Router();
-
-// In-memory store. Will be replaced by the MySQL data layer once the
-// database is set up (see README: Tech Stack and Roadmap).
-let nextId = 1;
-
-let users = [];
 
 router.post('/', (req, res) => {
   const { username, email } = req.body || {};
@@ -18,13 +13,7 @@ router.post('/', (req, res) => {
     return res.status(400).json({ error: 'Field "email" must be a valid email address.' });
   }
 
-  const created = {
-    id: nextId++,
-    username: username.trim(),
-    email: email.trim(),
-  };
-
-  users.push(created);
+  const created = userStore.add({ username: username.trim(), email: email.trim() });
   res.status(201).json({ username: created.username, email: created.email });
 });
 
