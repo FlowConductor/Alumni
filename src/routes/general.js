@@ -22,6 +22,14 @@ router.get('/about', (req, res) => {
 </html>`);
 });
 
+router.get('/api/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+  });
+});
+
 router.get('/hello', (req, res) => {
   res.send('Hello, World!');
 });

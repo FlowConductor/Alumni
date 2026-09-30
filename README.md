@@ -186,6 +186,7 @@ The backend's development server (Express) exposes the following starter routes 
 | Method | Route | Description |
 |--------|-------|-------------|
 | GET    | `/`   | Returns `"ok"`; will serve as the temporary main page |
+| GET    | `/api/health` | Health check; returns JSON with `status`, `uptime` (seconds), and `timestamp` |
 | GET    | `/about` | Temporary about page (HTML) |
 | GET    | `/alumni` | Returns the list of alumni records (JSON; in-memory store with seed data) |
 | POST   | `/alumni` | Creates an alumni record. Request body: `name` (required), `graduationYear` (integer, optional), `email` (optional). Returns `201` with the created record |
