@@ -30,4 +30,16 @@ function add({ username, email }) {
   return created;
 }
 
-module.exports = { list: load, add };
+function update(id, fields) {
+  const users = load();
+  const user = users.find((u) => u.id === id);
+  if (!user) return null;
+
+  if (fields.username !== undefined) user.username = fields.username;
+  if (fields.email !== undefined) user.email = fields.email;
+
+  save(users);
+  return user;
+}
+
+module.exports = { list: load, add, update };

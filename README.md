@@ -188,6 +188,7 @@ The backend's development server (Express) exposes the following starter routes 
 | GET    | `/`   | Returns `"ok"`; will serve as the temporary main page |
 | GET    | `/api/health` | Health check; returns JSON with `status`, `uptime` (seconds), and `timestamp` |
 | GET    | `/api/users` | Returns the list of saved users (JSON) |
+| PUT / PATCH | `/api/users/{id}` | Updates a user by id. Request body: `username` and/or `email` (partial updates allowed). Returns the updated record, or `404` if the id does not exist |
 | POST   | `/api/users` | Creates a user. Request body: `username` and `email` (both required). Returns `201` with `{"username": "...", "email": "..."}`. Users are persisted to `data/users.json` (no database) |
 | GET    | `/about` | Temporary about page (HTML) |
 | GET    | `/alumni` | Returns the list of alumni records (JSON; in-memory store with seed data) |
