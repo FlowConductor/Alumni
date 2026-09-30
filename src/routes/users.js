@@ -3,6 +3,10 @@ const userStore = require('../store/userStore');
 
 const router = express.Router();
 
+router.get('/', (req, res) => {
+  res.json(userStore.list());
+});
+
 router.post('/', (req, res) => {
   const { username, email } = req.body || {};
 

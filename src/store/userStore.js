@@ -30,4 +30,4 @@ function add({ username, email }) {
   return created;
 }
 
-module.exports = { add };
+module.exports = { list: load, add };
