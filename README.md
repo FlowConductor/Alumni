@@ -187,6 +187,7 @@ The backend's development server (Express) exposes the following starter routes 
 |--------|-------|-------------|
 | GET    | `/`   | Returns `"ok"`; will serve as the temporary main page |
 | GET    | `/api/health` | Health check; returns JSON with `status`, `uptime` (seconds), and `timestamp` |
+| GET    | `/api-docs` | Swagger UI — interactive API documentation for all endpoints (spec in `src/docs/openapi.js`) |
 | GET    | `/api/users` | Returns the list of saved users (JSON) |
 | GET    | `/api/users/{id}` | Returns a single user by id, or `404` if not found |
 | DELETE | `/api/users/{id}` | Deletes the user with the given id and returns the removed record, or `404` if not found |
@@ -199,7 +200,7 @@ The backend's development server (Express) exposes the following starter routes 
 | GET    | `/hello/{name}` | Returns a personalized greeting — e.g. `GET /hello/senol` returns `"Hello, senol!"` |
 | GET    | `/sum/{number1}/{number2}` | Returns the sum as JSON — e.g. `GET /sum/2/3` returns `{"number1":2,"number2":3,"sum":5}` |
 
-Run the server with `npm start`. The `/alumni` endpoints are the first endpoints of the Alumni Directory & Profile Management module; the remaining routes are temporary and used to verify the server is running. They will be extended and reorganized as the modules described in [Key Features](#key-features) are implemented.
+Run the server with `npm start`. Interactive API documentation for all endpoints is available via Swagger UI at [http://localhost:3000/api-docs](http://localhost:3000/api-docs); the OpenAPI spec itself lives in `src/docs/openapi.js`. The `/alumni` endpoints are the first endpoints of the Alumni Directory & Profile Management module; the remaining routes are temporary and used to verify the server is running. They will be extended and reorganized as the modules described in [Key Features](#key-features) are implemented.
 
 ## Roadmap
 
