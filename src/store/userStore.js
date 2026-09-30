@@ -21,6 +21,10 @@ function save(users) {
   fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
 }
 
+function get(id) {
+  return load().find((u) => u.id === id) || null;
+}
+
 function add({ username, email }) {
   const users = load();
   const nextId = users.reduce((max, u) => Math.max(max, u.id), 0) + 1;
@@ -42,4 +46,14 @@ function update(id, fields) {
   return user;
 }
 
-module.exports = { list: load, add, update };
+function remove(id) {
+  const users = load();
+  const index = users.findIndex((u) => u.id === id);
+  if (index === -1) return null;
+
+  const [removed] = users.splice(index, 1);
+  save(users);
+  return removed;
+}
+
+module.exports = { list: load, get, add, update, remove };
