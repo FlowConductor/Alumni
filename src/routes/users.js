@@ -1,5 +1,5 @@
 const express = require('express');
-const userStore = require('../store/userStore');
+const UserModel = require('../models/user.model');
 
 const router = express.Router();
 
@@ -13,7 +13,7 @@ function idParamOr400(req, res) {
 }
 
 router.get('/', (req, res) => {
-  res.json(userStore.list());
+  res.json(UserModel.findAll());
 });
 
 router.post('/', (req, res) => {
@@ -26,7 +26,7 @@ router.post('/', (req, res) => {
     return res.status(400).json({ error: 'Field "email" must be a valid email address.' });
   }
 
-  const created = userStore.add({ username: username.trim(), email: email.trim() });
+  const created = UserModel.create({ username: username.trim(), email: email.trim() });
   res.status(201).json({ username: created.username, email: created.email });
 });
 
@@ -34,7 +34,7 @@ router.get('/:id', (req, res) => {
   const id = idParamOr400(req, res);
   if (id === null) return;
 
-  const user = userStore.get(id);
+  const user = UserModel.findById(id);
   if (!user) {
     return res.status(404).json({ error: `User with id ${id} not found.` });
   }
@@ -55,7 +55,7 @@ function updateUser(req, res) {
     return res.status(400).json({ error: 'Field "email" must be a valid email address.' });
   }
 
-  const updated = userStore.update(id, {
+  const updated = UserModel.update(id, {
     ...(username !== undefined && { username: username.trim() }),
     ...(email !== undefined && { email: email.trim() }),
   });
@@ -74,7 +74,7 @@ router.delete('/:id', (req, res) => {
   const id = idParamOr400(req, res);
   if (id === null) return;
 
-  const removed = userStore.remove(id);
+  const removed = UserModel.remove(id);
   if (!removed) {
     return res.status(404).json({ error: `User with id ${id} not found.` });
   }

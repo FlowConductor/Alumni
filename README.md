@@ -120,7 +120,7 @@ The staff-facing side of the tracking system.
 
 The application follows the MVC (Model–View–Controller) pattern, adapted for an API-first Node.js/Express backend:
 
-- **Model** — the data and all persistence logic (`src/store/`). Models are the only code that reads and writes storage.
+- **Model** — the data and all persistence logic (`src/models/`). Models are the only code that reads and writes storage.
 - **View** — the representation returned to the client. Because the app is an API, the views are its responses: JSON records, JSON error objects, and the temporary HTML pages. Swagger UI (`/api-docs`) documents the response contracts.
 - **Controller** — request handling: input validation, calling the model, choosing status codes and response shape (`src/routes/`).
 
@@ -140,8 +140,8 @@ MIS/
     │   ├── general.js      / , /about , /hello , /hello/:name , /sum/... , /api/health
     │   ├── alumni.js       GET/POST /alumni (in-memory alumni model + seed data)
     │   └── users.js        GET/POST /api/users and GET/PUT/PATCH/DELETE /api/users/:id
-    ├── store/              Models
-    │   └── userStore.js    User model: list/get/add/update/remove on data/users.json
+    ├── models/             Models
+    │   └── user.model.js   User model: create, findAll, findById, update, remove (CRUD) on data/users.json
     └── docs/               API documentation
         └── openapi.js      OpenAPI 3.0 spec served by Swagger UI at /api-docs
 ```
@@ -150,8 +150,8 @@ MIS/
 
 | MVC role | Location | Responsibility |
 |----------|----------|----------------|
-| Model | `src/store/userStore.js` | Owns user data: list, get, add, update, remove — persisted to `data/users.json` |
-| Model (pending extraction) | inside `src/routes/alumni.js` | The alumni model is still an in-memory array inside its controller; it moves to `src/store/` when the MySQL layer is implemented |
+| Model | `src/models/user.model.js` | The User model: `create`, `findAll`, `findById`, `update`, `remove` (full CRUD) — persisted to `data/users.json`, no database |
+| Model (pending extraction) | inside `src/routes/alumni.js` | The alumni model is still an in-memory array inside its controller; it moves to `src/models/` when the MySQL layer is implemented |
 | View | responses produced by controllers | JSON records, JSON error objects, temporary HTML pages — the API's output layer |
 | Controller | `src/routes/*.js` | Validate input, call the model, set HTTP status codes and response bodies |
 | Wiring | `server.js` | Creates the Express app, mounts controllers at their base paths, serves Swagger UI |
@@ -162,11 +162,11 @@ MIS/
 Client request
    → server.js (express.json, route mounting)
    → Controller (src/routes/) — validates input, e.g. username/email
-   → Model (src/store/) — load/modify/save data/users.json
+   → Model (src/models/) — load/modify/save data/users.json
    ← Controller responds with the view: JSON record + status code
 ```
 
-A POST to `/api/users`, for example: `server.js` parses the JSON body, the controller in `src/routes/users.js` validates `username` and `email`, the model in `src/store/userStore.js` appends the record to `data/users.json` and returns it, and the controller sends back `201` with the created user.
+A POST to `/api/users`, for example: `server.js` parses the JSON body, the controller in `src/routes/users.js` validates `username` and `email`, the model in `src/models/user.model.js` appends the record to `data/users.json` and returns it, and the controller sends back `201` with the created user.
 
 ## Getting Started
 
