@@ -122,7 +122,7 @@ The application follows the MVC (Model–View–Controller) pattern, adapted for
 
 - **Model** — the data and all persistence logic (`src/models/`). Models are the only code that reads and writes storage.
 - **View** — the representation returned to the client. Because the app is an API, the views are its responses: JSON records, JSON error objects, and the temporary HTML pages. Swagger UI (`/api-docs`) documents the response contracts.
-- **Controller** — request handling: input validation, calling the model, choosing status codes and response shape (`src/routes/`).
+- **Controller** — request handling: input validation, calling the model, choosing status codes and response shape (`src/controllers/`). Route files (`src/routes/`) are thin mappings from URLs to controller functions.
 
 ### Directory layout
 
@@ -136,10 +136,14 @@ MIS/
 ├── data/                   Runtime data (gitignored, auto-created)
 │   └── users.json          Persisted user records, written by the User model
 └── src/
-    ├── routes/             Controllers
+    ├── controllers/        Controllers
+    │   ├── user.controller.js      User controller: web CRUD (HTML pages + forms) for /users
+    │   └── apiUser.controller.js   ApiUser controller: JSON CRUD for /api/users
+    ├── routes/             Route definitions (mapped to controllers)
     │   ├── general.js      / , /about , /hello , /hello/:name , /sum/... , /api/health
     │   ├── alumni.js       GET/POST /alumni (in-memory alumni model + seed data)
-    │   └── users.js        GET/POST /api/users and GET/PUT/PATCH/DELETE /api/users/:id
+    │   ├── apiUsers.js     /api/users routes -> ApiUser controller
+    │   └── users.js        /users routes -> User controller
     ├── models/             Models
     │   └── user.model.js   User model: create, findAll, findById, update, remove (CRUD) on data/users.json
     └── docs/               API documentation
@@ -153,8 +157,8 @@ MIS/
 | Model | `src/models/user.model.js` | The User model: `create`, `findAll`, `findById`, `update`, `remove` (full CRUD) — persisted to `data/users.json`, no database |
 | Model (pending extraction) | inside `src/routes/alumni.js` | The alumni model is still an in-memory array inside its controller; it moves to `src/models/` when the MySQL layer is implemented |
 | View | responses produced by controllers | JSON records, JSON error objects, temporary HTML pages — the API's output layer |
-| Controller | `src/routes/*.js` | Validate input, call the model, set HTTP status codes and response bodies |
-| Wiring | `server.js` | Creates the Express app, mounts controllers at their base paths, serves Swagger UI |
+| Controller | `src/controllers/user.controller.js` (web) and `src/controllers/apiUser.controller.js` (API) | Full CRUD functions: validate input, call the model, produce the response — HTML pages and redirects for the web, JSON + status codes for the API |
+| Wiring | `server.js` | Creates the Express app, mounts the route files (which map to controllers) at their base paths, serves Swagger UI |
 
 ### Request flow
 
@@ -241,6 +245,11 @@ The backend's development server (Express) exposes the following starter routes 
 | GET    | `/`   | Returns `"ok"`; will serve as the temporary main page |
 | GET    | `/api/health` | Health check; returns JSON with `status`, `uptime` (seconds), and `timestamp` |
 | GET    | `/api-docs` | Swagger UI — interactive API documentation for all endpoints (spec in `src/docs/openapi.js`) |
+| GET    | `/users` | Web page listing all users (HTML) |
+| GET    | `/users/{id}` | Web page for one user (HTML); `404` page if not found |
+| POST   | `/users` | Create a user from an HTML form (fields: `username`, `email`); redirects to `/users` |
+| POST   | `/users/{id}` | Update a user from an HTML form; redirects to `/users/{id}` |
+| POST   | `/users/{id}/delete` | Delete a user from an HTML form; redirects to `/users` |
 | GET    | `/api/users` | Returns the list of saved users (JSON) |
 | GET    | `/api/users/{id}` | Returns a single user by id, or `404` if not found |
 | DELETE | `/api/users/{id}` | Deletes the user with the given id and returns the removed record, or `404` if not found |
