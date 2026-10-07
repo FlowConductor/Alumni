@@ -14,6 +14,7 @@ A centralized alumni tracking system and community portal for graduates of the I
   - [University Perks & Services](#university-perks--services)
   - [Administrative CRM & Accreditation Analytics (For University Staff)](#administrative-crm--accreditation-analytics-for-university-staff)
 - [Tech Stack](#tech-stack)
+- [Project Structure (MVC)](#project-structure-mvc)
 - [Getting Started](#getting-started)
 - [Current Routes](#current-routes)
 - [Roadmap](#roadmap)
@@ -114,6 +115,58 @@ The staff-facing side of the tracking system.
 | Database  | MySQL              | Relational data storage for alumni records        |
 
 > Note: the backend uses Express for HTTP routing. The ORM/database tooling and migration setup are **TBD** — until MySQL is integrated, the alumni data is kept in an in-memory store with seed records.
+
+## Project Structure (MVC)
+
+The application follows the MVC (Model–View–Controller) pattern, adapted for an API-first Node.js/Express backend:
+
+- **Model** — the data and all persistence logic (`src/store/`). Models are the only code that reads and writes storage.
+- **View** — the representation returned to the client. Because the app is an API, the views are its responses: JSON records, JSON error objects, and the temporary HTML pages. Swagger UI (`/api-docs`) documents the response contracts.
+- **Controller** — request handling: input validation, calling the model, choosing status codes and response shape (`src/routes/`).
+
+### Directory layout
+
+```
+MIS/
+├── server.js               Entry point: Express app, JSON middleware,
+│                           mounts controllers and Swagger UI, starts listening
+├── package.json            Dependencies and npm scripts (start, dev)
+├── README.md               This document
+├── .gitignore              Ignores node_modules/, .env, data/
+├── data/                   Runtime data (gitignored, auto-created)
+│   └── users.json          Persisted user records, written by the User model
+└── src/
+    ├── routes/             Controllers
+    │   ├── general.js      / , /about , /hello , /hello/:name , /sum/... , /api/health
+    │   ├── alumni.js       GET/POST /alumni (in-memory alumni model + seed data)
+    │   └── users.js        GET/POST /api/users and GET/PUT/PATCH/DELETE /api/users/:id
+    ├── store/              Models
+    │   └── userStore.js    User model: list/get/add/update/remove on data/users.json
+    └── docs/               API documentation
+        └── openapi.js      OpenAPI 3.0 spec served by Swagger UI at /api-docs
+```
+
+### MVC mapping
+
+| MVC role | Location | Responsibility |
+|----------|----------|----------------|
+| Model | `src/store/userStore.js` | Owns user data: list, get, add, update, remove — persisted to `data/users.json` |
+| Model (pending extraction) | inside `src/routes/alumni.js` | The alumni model is still an in-memory array inside its controller; it moves to `src/store/` when the MySQL layer is implemented |
+| View | responses produced by controllers | JSON records, JSON error objects, temporary HTML pages — the API's output layer |
+| Controller | `src/routes/*.js` | Validate input, call the model, set HTTP status codes and response bodies |
+| Wiring | `server.js` | Creates the Express app, mounts controllers at their base paths, serves Swagger UI |
+
+### Request flow
+
+```
+Client request
+   → server.js (express.json, route mounting)
+   → Controller (src/routes/) — validates input, e.g. username/email
+   → Model (src/store/) — load/modify/save data/users.json
+   ← Controller responds with the view: JSON record + status code
+```
+
+A POST to `/api/users`, for example: `server.js` parses the JSON body, the controller in `src/routes/users.js` validates `username` and `email`, the model in `src/store/userStore.js` appends the record to `data/users.json` and returns it, and the controller sends back `201` with the created user.
 
 ## Getting Started
 
