@@ -150,7 +150,9 @@ MIS/
     │   ├── error.ejs              Error page (400/404)
     │   └── users/
     │       ├── index.ejs          User list page (GET /users)
-    │       └── details.ejs        User detail page (GET /users/:id)
+    │       ├── create.ejs         Create form page (GET /users/new)
+    │       ├── details.ejs        User detail page (GET /users/:id)
+    │       └── edit.ejs           Edit form page (GET /users/:id/edit)
     └── docs/               API documentation
         └── openapi.js      OpenAPI 3.0 spec served by Swagger UI at /api-docs
 ```
@@ -161,7 +163,7 @@ MIS/
 |----------|----------|----------------|
 | Model | `src/models/user.model.js` | The User model: `create`, `findAll`, `findById`, `update`, `remove` (full CRUD) — persisted to `data/users.json`, no database |
 | Model (pending extraction) | inside `src/routes/alumni.js` | The alumni model is still an in-memory array inside its controller; it moves to `src/models/` when the MySQL layer is implemented |
-| View | `src/views/*.ejs` (web) and JSON responses (API) | EJS templates: `users/index.ejs` (list), `users/details.ejs` (detail), `error.ejs` (error pages); the ApiUser controller's JSON output is the API's view |
+| View | `src/views/*.ejs` (web) and JSON responses (API) | EJS templates: `users/index.ejs` (list), `users/create.ejs` (create form), `users/details.ejs` (detail), `users/edit.ejs` (edit form), `error.ejs` (error pages); the ApiUser controller's JSON output is the API's view |
 | Controller | `src/controllers/user.controller.js` (web) and `src/controllers/apiUser.controller.js` (API) | Full CRUD functions: validate input, call the model, produce the response — HTML pages and redirects for the web, JSON + status codes for the API |
 | Routes | `src/routes/*.js` | Map URLs and HTTP methods to controller functions: `apiUsers.js` → ApiUser controller (`/api/users`), `users.js` → User controller (`/users`), `alumni.js` and `general.js` → inline handlers |
 | Wiring | `server.js` | Creates the Express app, mounts the route files (which map to controllers) at their base paths, serves Swagger UI |
@@ -251,8 +253,10 @@ The backend's development server (Express) exposes the following starter routes 
 | GET    | `/`   | Returns `"ok"`; will serve as the temporary main page |
 | GET    | `/api/health` | Health check; returns JSON with `status`, `uptime` (seconds), and `timestamp` |
 | GET    | `/api-docs` | Swagger UI — interactive API documentation for all endpoints, both JSON API and web pages (spec in `src/docs/openapi.js`) |
-| GET    | `/users` | Web page listing all users (EJS view: `users/index.ejs`) |
+| GET    | `/users` | Web page listing all users (EJS view: `users/index.ejs`) with view/edit/delete actions |
+| GET    | `/users/new` | Create form page (EJS view: `users/create.ejs`); submits to `POST /users` |
 | GET    | `/users/{id}` | Web page for one user (EJS view: `users/details.ejs`); `404` error view if not found |
+| GET    | `/users/{id}/edit` | Edit form page prefilled with the user (EJS view: `users/edit.ejs`); submits to `POST /users/{id}` |
 | POST   | `/users` | Create a user from an HTML form (fields: `username`, `email`); redirects to `/users` |
 | POST   | `/users/{id}` | Update a user from an HTML form; redirects to `/users/{id}` |
 | POST   | `/users/{id}/delete` | Delete a user from an HTML form; redirects to `/users` |

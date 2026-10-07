@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Edit <%= user.username %> - MIS Alumni Portal</title>
+</head>
+<body>
+  <h1>Edit User</h1>
+  <form method="POST" action="/users/<%= user.id %>">
+    <p>
+      <label for="username">Username:</label><br>
+      <input type="text" id="username" name="username" value="<%= user.username %>" required>
+    </p>
+    <p>
+      <label for="email">Email:</label><br>
+      <input type="email" id="email" name="email" value="<%= user.email %>" required>
+    </p>
+    <button type="submit">Save</button>
+  </form>
+  <p><a href="/users/<%= user.id %>">Back to user</a> | <a href="/users">All users</a></p>
+</body>
+</html>

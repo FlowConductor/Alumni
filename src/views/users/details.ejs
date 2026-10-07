@@ -8,6 +8,12 @@
   <h1><%= user.username %></h1>
   <p><strong>Id:</strong> <%= user.id %></p>
   <p><strong>Email:</strong> <%= user.email %></p>
+  <p>
+    <a href="/users/<%= user.id %>/edit">Edit</a> |
+    <form method="POST" action="/users/<%= user.id %>/delete" style="display:inline">
+      <button type="submit">Delete</button>
+    </form>
+  </p>
   <p><a href="/users">All users</a> | <a href="/">Back</a></p>
 </body>
 </html>

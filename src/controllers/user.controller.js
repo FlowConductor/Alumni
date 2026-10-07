@@ -24,6 +24,26 @@ function details(req, res) {
   res.render('users/details', { user });
 }
 
+// CREATE (form view) — view: src/views/users/create.ejs
+function createForm(req, res) {
+  res.render('users/create');
+}
+
+// UPDATE (form view) — view: src/views/users/edit.ejs
+function editForm(req, res) {
+  const id = Number(req.params.id);
+  const user = Number.isInteger(id) ? UserModel.findById(id) : null;
+
+  if (!user) {
+    return res.status(404).render('error', {
+      title: 'User not found',
+      message: `No user with id ${req.params.id}.`,
+    });
+  }
+
+  res.render('users/edit', { user });
+}
+
 // CREATE (HTML form)
 function create(req, res) {
   const username = (req.body.username || '').trim();
@@ -86,4 +106,4 @@ function remove(req, res) {
   res.redirect('/users');
 }
 
-module.exports = { list, details, create, update, remove };
+module.exports = { list, details, createForm, create, editForm, update, remove };

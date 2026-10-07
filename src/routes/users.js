@@ -6,8 +6,10 @@ const userController = require('../controllers/user.controller');
 const router = express.Router();
 
 router.get('/', userController.list);
+router.get('/new', userController.createForm);
 router.post('/', userController.create);
 router.get('/:id', userController.details);
+router.get('/:id/edit', userController.editForm);
 router.post('/:id', userController.update);
 router.post('/:id/delete', userController.remove);
 

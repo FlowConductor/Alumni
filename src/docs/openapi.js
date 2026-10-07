@@ -267,6 +267,13 @@ module.exports = {
         },
       },
     },
+    '/users/new': {
+      get: {
+        tags: ['Users (Web)'],
+        summary: 'Form page for creating a user (HTML)',
+        responses: { 200: { description: 'HTML create form' } },
+      },
+    },
     '/users/{id}': {
       get: {
         tags: ['Users (Web)'],
@@ -292,6 +299,17 @@ module.exports = {
         responses: {
           302: { description: 'Redirects to /users/{id}' },
           400: { description: 'Invalid input (HTML error page)' },
+          404: { description: 'User not found (HTML error page)' },
+        },
+      },
+    },
+    '/users/{id}/edit': {
+      get: {
+        tags: ['Users (Web)'],
+        summary: 'Form page for editing a user (HTML)',
+        parameters: [{ $ref: '#/components/parameters/UserId' }],
+        responses: {
+          200: { description: 'HTML edit form prefilled with the user' },
           404: { description: 'User not found (HTML error page)' },
         },
       },
