@@ -1,56 +1,27 @@
 // User Controller — handles the web (HTML) surface for users (/users).
-// Renders pages and processes HTML form submissions, using the User model.
+// Renders EJS views from src/views/ and processes HTML form submissions,
+// using the User model.
 
 const UserModel = require('../models/user.model');
 
-function escapeHtml(str) {
-  return String(str).replace(/[&<>"']/g, (ch) => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
-  }[ch]));
-}
-
-function page(title, body) {
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>${escapeHtml(title)} - MIS Alumni Portal</title>
-</head>
-<body>
-${body}
-<p><a href="/">Back</a> | <a href="/users">All users</a></p>
-</body>
-</html>`;
-}
-
-// READ (all)
+// READ (all) — view: src/views/users/index.ejs
 function list(req, res) {
-  const users = UserModel.findAll();
-  const rows = users
-    .map((u) => `<tr><td>${u.id}</td><td>${escapeHtml(u.username)}</td><td>${escapeHtml(u.email)}</td><td><a href="/users/${u.id}">view</a></td></tr>`)
-    .join('\n');
-
-  res.send(page('Users', `
-  <h1>Users</h1>
-  <table border="1" cellpadding="6">
-    <thead><tr><th>Id</th><th>Username</th><th>Email</th><th></th></tr></thead>
-    <tbody>${rows}</tbody>
-  </table>`));
+  res.render('users/index', { users: UserModel.findAll() });
 }
 
-// READ (one)
+// READ (one) — view: src/views/users/details.ejs
 function details(req, res) {
   const id = Number(req.params.id);
   const user = Number.isInteger(id) ? UserModel.findById(id) : null;
 
   if (!user) {
-    return res.status(404).send(page('User not found', `<h1>User not found</h1><p>No user with id ${escapeHtml(req.params.id)}.</p>`));
+    return res.status(404).render('error', {
+      title: 'User not found',
+      message: `No user with id ${req.params.id}.`,
+    });
   }
 
-  res.send(page(user.username, `
-  <h1>${escapeHtml(user.username)}</h1>
-  <p><strong>Id:</strong> ${user.id}</p>
-  <p><strong>Email:</strong> ${escapeHtml(user.email)}</p>`));
+  res.render('users/details', { user });
 }
 
 // CREATE (HTML form)
@@ -59,7 +30,10 @@ function create(req, res) {
   const email = (req.body.email || '').trim();
 
   if (!username || !email) {
-    return res.status(400).send(page('Invalid input', '<h1>Invalid input</h1><p>Both username and email are required.</p>'));
+    return res.status(400).render('error', {
+      title: 'Invalid input',
+      message: 'Both username and email are required.',
+    });
   }
 
   UserModel.create({ username, email });
@@ -73,12 +47,18 @@ function update(req, res) {
   const email = (req.body.email || '').trim();
 
   if (!Number.isInteger(id) || !username || !email) {
-    return res.status(400).send(page('Invalid input', '<h1>Invalid input</h1><p>A valid id, username, and email are required.</p>'));
+    return res.status(400).render('error', {
+      title: 'Invalid input',
+      message: 'A valid id, username, and email are required.',
+    });
   }
 
   const updated = UserModel.update(id, { username, email });
   if (!updated) {
-    return res.status(404).send(page('User not found', `<h1>User not found</h1><p>No user with id ${id}.</p>`));
+    return res.status(404).render('error', {
+      title: 'User not found',
+      message: `No user with id ${id}.`,
+    });
   }
 
   res.redirect(`/users/${id}`);
@@ -89,12 +69,18 @@ function remove(req, res) {
   const id = Number(req.params.id);
 
   if (!Number.isInteger(id)) {
-    return res.status(400).send(page('Invalid input', '<h1>Invalid input</h1><p>A valid id is required.</p>'));
+    return res.status(400).render('error', {
+      title: 'Invalid input',
+      message: 'A valid id is required.',
+    });
   }
 
   const removed = UserModel.remove(id);
   if (!removed) {
-    return res.status(404).send(page('User not found', `<h1>User not found</h1><p>No user with id ${id}.</p>`));
+    return res.status(404).render('error', {
+      title: 'User not found',
+      message: `No user with id ${id}.`,
+    });
   }
 
   res.redirect('/users');
