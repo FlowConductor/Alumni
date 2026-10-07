@@ -5,6 +5,8 @@ const generalRoutes = require('./src/routes/general');
 const alumniRoutes = require('./src/routes/alumni');
 const apiUsersRoutes = require('./src/routes/apiUsers');
 const usersRoutes = require('./src/routes/users');
+const apiAnnouncementsRoutes = require('./src/routes/apiAnnouncements');
+const announcementsRoutes = require('./src/routes/announcements');
 const openapiSpec = require('./src/docs/openapi');
 
 const app = express();
@@ -19,6 +21,8 @@ app.use('/', generalRoutes);
 app.use('/alumni', alumniRoutes);
 app.use('/api/users', apiUsersRoutes);
 app.use('/users', usersRoutes);
+app.use('/api/announcements', apiAnnouncementsRoutes);
+app.use('/announcements', announcementsRoutes);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(openapiSpec));
 
 app.listen(PORT, () => {

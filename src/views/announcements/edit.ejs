@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Edit <%= announcement.title %> - MIS Alumni Portal</title>
+</head>
+<body>
+  <h1>Edit Announcement</h1>
+  <form method="POST" action="/announcements/<%= announcement.id %>">
+    <p>
+      <label for="title">Title:</label><br>
+      <input type="text" id="title" name="title" value="<%= announcement.title %>" required>
+    </p>
+    <p>
+      <label for="content">Content:</label><br>
+      <textarea id="content" name="content" rows="6" cols="60" required><%= announcement.content %></textarea>
+    </p>
+    <button type="submit">Save</button>
+  </form>
+  <p><a href="/announcements/<%= announcement.id %>">Back to announcement</a> | <a href="/announcements">All announcements</a></p>
+</body>
+</html>

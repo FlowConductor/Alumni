@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Announcements - MIS Alumni Portal</title>
+</head>
+<body>
+  <h1>Announcements</h1>
+  <p><a href="/announcements/new">New announcement</a></p>
+  <table border="1" cellpadding="6">
+    <thead><tr><th>Id</th><th>Title</th><th>Created</th><th>Actions</th></tr></thead>
+    <tbody>
+      <% announcements.forEach((announcement) => { %>
+      <tr>
+        <td><%= announcement.id %></td>
+        <td><%= announcement.title %></td>
+        <td><%= announcement.createdAt %></td>
+        <td>
+          <a href="/announcements/<%= announcement.id %>">view</a> |
+          <a href="/announcements/<%= announcement.id %>/edit">edit</a> |
+          <form method="POST" action="/announcements/<%= announcement.id %>/delete" style="display:inline">
+            <button type="submit">delete</button>
+          </form>
+        </td>
+      </tr>
+      <% }); %>
+    </tbody>
+  </table>
+  <p><a href="/">Back</a></p>
+</body>
+</html>

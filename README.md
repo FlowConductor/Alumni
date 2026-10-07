@@ -134,25 +134,36 @@ MIS/
 ├── README.md               This document
 ├── .gitignore              Ignores node_modules/, .env, data/
 ├── data/                   Runtime data (gitignored, auto-created)
-│   └── users.json          Persisted user records, written by the User model
+│   ├── users.json          Persisted user records, written by the User model
+│   └── announcements.json   Persisted announcement records, written by the Announcement model
 └── src/
     ├── controllers/        Controllers
     │   ├── user.controller.js      User controller: web CRUD (HTML pages + forms) for /users
-    │   └── apiUser.controller.js   ApiUser controller: JSON CRUD for /api/users
+    │   ├── apiUser.controller.js   ApiUser controller: JSON CRUD for /api/users
+    │   ├── announcement.controller.js    Announcement controller: web CRUD (HTML pages + forms) for /announcements
+    │   └── apiAnnouncement.controller.js  ApiAnnouncement controller: JSON CRUD for /api/announcements
     ├── routes/             Route definitions (mapped to controllers)
     │   ├── general.js      / , /about , /hello , /hello/:name , /sum/... , /api/health
     │   ├── alumni.js       GET/POST /alumni (in-memory alumni model + seed data)
     │   ├── apiUsers.js     /api/users routes -> ApiUser controller
-    │   └── users.js        /users routes -> User controller
+    │   ├── users.js        /users routes -> User controller
+    │   ├── apiAnnouncements.js    /api/announcements routes -> ApiAnnouncement controller
+    │   └── announcements.js      /announcements routes -> Announcement controller
     ├── models/             Models
-    │   └── user.model.js   User model: create, findAll, findById, update, remove (CRUD) on data/users.json
+    │   ├── user.model.js      User model: create, findAll, findById, update, remove (CRUD) on data/users.json
+    │   └── announcement.model.js  Announcement model: same CRUD on data/announcements.json
     ├── views/             View layer (EJS templates)
     │   ├── error.ejs              Error page (400/404)
     │   └── users/
     │       ├── index.ejs          User list page (GET /users)
     │       ├── create.ejs         Create form page (GET /users/new)
     │       ├── details.ejs        User detail page (GET /users/:id)
-    │       └── edit.ejs           Edit form page (GET /users/:id/edit)
+    │       ├── edit.ejs           Edit form page (GET /users/:id/edit)
+    │   └── announcements/
+    │       ├── index.ejs          Announcement list page (GET /announcements)
+    │       ├── create.ejs         Create form page (GET /announcements/new)
+    │       ├── details.ejs        Announcement detail page (GET /announcements/:id)
+    │       └── edit.ejs           Edit form page (GET /announcements/:id/edit)
     └── docs/               API documentation
         └── openapi.js      OpenAPI 3.0 spec served by Swagger UI at /api-docs
 ```
@@ -260,6 +271,18 @@ The backend's development server (Express) exposes the following starter routes 
 | POST   | `/users` | Create a user from an HTML form (fields: `username`, `email`); redirects to `/users` |
 | POST   | `/users/{id}` | Update a user from an HTML form; redirects to `/users/{id}` |
 | POST   | `/users/{id}/delete` | Delete a user from an HTML form; redirects to `/users` |
+| GET    | `/api/announcements` | Returns the list of saved announcements (JSON; persisted to `data/announcements.json`) |
+| POST   | `/api/announcements` | Creates an announcement. Request body: `title` and `content` (both required). Returns `201` with the created record |
+| GET    | `/api/announcements/{id}` | Returns a single announcement by id, or `404` |
+| PUT / PATCH | `/api/announcements/{id}` | Updates an announcement by id (partial updates allowed) |
+| DELETE | `/api/announcements/{id}` | Deletes an announcement by id and returns the removed record |
+| GET    | `/announcements` | Web page listing all announcements (EJS view: `announcements/index.ejs`) with view/edit/delete actions |
+| GET    | `/announcements/new` | Create form page (EJS view: `announcements/create.ejs`); submits to `POST /announcements` |
+| GET    | `/announcements/{id}` | Web page for one announcement (EJS view: `announcements/details.ejs`); `404` error view if not found |
+| GET    | `/announcements/{id}/edit` | Edit form page prefilled with the announcement (EJS view: `announcements/edit.ejs`) |
+| POST   | `/announcements` | Create an announcement from an HTML form; redirects to `/announcements` |
+| POST   | `/announcements/{id}` | Update an announcement from an HTML form; redirects to `/announcements/{id}` |
+| POST   | `/announcements/{id}/delete` | Delete an announcement from an HTML form; redirects to `/announcements` |
 | GET    | `/api/users` | Returns the list of saved users (JSON) |
 | GET    | `/api/users/{id}` | Returns a single user by id, or `404` if not found |
 | DELETE | `/api/users/{id}` | Deletes the user with the given id and returns the removed record, or `404` if not found |

@@ -17,6 +17,8 @@ module.exports = {
     { name: 'Alumni', description: 'Alumni directory starter endpoints' },
     { name: 'Users', description: 'User CRUD endpoints (persisted to data/users.json)' },
     { name: 'Users (Web)', description: 'HTML pages and form endpoints for users' },
+    { name: 'Announcements', description: 'Announcement CRUD endpoints (persisted to data/announcements.json)' },
+    { name: 'Announcements (Web)', description: 'HTML pages and form endpoints for announcements' },
   ],
   paths: {
     '/': {
@@ -244,6 +246,192 @@ module.exports = {
         },
       },
     },
+    '/api/announcements': {
+      get: {
+        tags: ['Announcements'],
+        summary: 'List all saved announcements',
+        responses: {
+          200: {
+            description: 'Announcement records',
+            content: {
+              'application/json': {
+                schema: { type: 'array', items: { $ref: '#/components/schemas/Announcement' } },
+              },
+            },
+          },
+        },
+      },
+      post: {
+        tags: ['Announcements'],
+        summary: 'Create an announcement (persisted to data/announcements.json)',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': { schema: { $ref: '#/components/schemas/AnnouncementInput' } },
+          },
+        },
+        responses: {
+          201: {
+            description: 'Created announcement',
+            content: {
+              'application/json': { schema: { $ref: '#/components/schemas/Announcement' } },
+            },
+          },
+          400: { description: 'Validation error' },
+        },
+      },
+    },
+    '/api/announcements/{id}': {
+      get: {
+        tags: ['Announcements'],
+        summary: 'Get a single announcement by id',
+        parameters: [{ $ref: '#/components/parameters/Id' }],
+        responses: {
+          200: {
+            description: 'The announcement record',
+            content: {
+              'application/json': { schema: { $ref: '#/components/schemas/Announcement' } },
+            },
+          },
+          404: { description: 'Announcement not found' },
+        },
+      },
+      put: {
+        tags: ['Announcements'],
+        summary: 'Update an announcement by id (partial updates allowed)',
+        parameters: [{ $ref: '#/components/parameters/Id' }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': { schema: { $ref: '#/components/schemas/AnnouncementInput' } },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Updated announcement',
+            content: {
+              'application/json': { schema: { $ref: '#/components/schemas/Announcement' } },
+            },
+          },
+          404: { description: 'Announcement not found' },
+        },
+      },
+      patch: {
+        tags: ['Announcements'],
+        summary: 'Partially update an announcement by id',
+        parameters: [{ $ref: '#/components/parameters/Id' }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': { schema: { $ref: '#/components/schemas/AnnouncementInput' } },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Updated announcement',
+            content: {
+              'application/json': { schema: { $ref: '#/components/schemas/Announcement' } },
+            },
+          },
+          404: { description: 'Announcement not found' },
+        },
+      },
+      delete: {
+        tags: ['Announcements'],
+        summary: 'Delete an announcement by id',
+        parameters: [{ $ref: '#/components/parameters/Id' }],
+        responses: {
+          200: {
+            description: 'The removed announcement record',
+            content: {
+              'application/json': { schema: { $ref: '#/components/schemas/Announcement' } },
+            },
+          },
+          404: { description: 'Announcement not found' },
+        },
+      },
+    },
+    '/announcements': {
+      get: {
+        tags: ['Announcements (Web)'],
+        summary: 'Web page listing all announcements (HTML)',
+        responses: { 200: { description: 'HTML page with a table of all announcements' } },
+      },
+      post: {
+        tags: ['Announcements (Web)'],
+        summary: 'Create an announcement from an HTML form',
+        requestBody: {
+          required: true,
+          content: {
+            'application/x-www-form-urlencoded': {
+              schema: { $ref: '#/components/schemas/AnnouncementInput' },
+            },
+          },
+        },
+        responses: {
+          302: { description: 'Redirects to /announcements' },
+          400: { description: 'Missing title or content (HTML error page)' },
+        },
+      },
+    },
+    '/announcements/new': {
+      get: {
+        tags: ['Announcements (Web)'],
+        summary: 'Form page for creating an announcement (HTML)',
+        responses: { 200: { description: 'HTML create form' } },
+      },
+    },
+    '/announcements/{id}': {
+      get: {
+        tags: ['Announcements (Web)'],
+        summary: 'Web page for a single announcement (HTML)',
+        parameters: [{ $ref: '#/components/parameters/Id' }],
+        responses: {
+          200: { description: 'HTML page for the announcement' },
+          404: { description: 'Announcement not found (HTML error page)' },
+        },
+      },
+      post: {
+        tags: ['Announcements (Web)'],
+        summary: 'Update an announcement from an HTML form',
+        parameters: [{ $ref: '#/components/parameters/Id' }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/x-www-form-urlencoded': {
+              schema: { $ref: '#/components/schemas/AnnouncementInput' },
+            },
+          },
+        },
+        responses: {
+          302: { description: 'Redirects to /announcements/{id}' },
+          400: { description: 'Invalid input (HTML error page)' },
+          404: { description: 'Announcement not found (HTML error page)' },
+        },
+      },
+    },
+    '/announcements/{id}/edit': {
+      get: {
+        tags: ['Announcements (Web)'],
+        summary: 'Form page for editing an announcement (HTML)',
+        parameters: [{ $ref: '#/components/parameters/Id' }],
+        responses: {
+          200: { description: 'HTML edit form prefilled with the announcement' },
+          404: { description: 'Announcement not found (HTML error page)' },
+        },
+      },
+    },
+    '/announcements/{id}/delete': {
+      post: {
+        tags: ['Announcements (Web)'],
+        summary: 'Delete an announcement from an HTML form',
+        parameters: [{ $ref: '#/components/parameters/Id' }],
+        responses: {
+          302: { description: 'Redirects to /announcements' },
+          404: { description: 'Announcement not found (HTML error page)' },
+        },
+      },
+    },
     '/users': {
       get: {
         tags: ['Users (Web)'],
@@ -335,6 +523,13 @@ module.exports = {
         description: 'Numeric user id',
         schema: { type: 'integer', minimum: 1 },
       },
+      Id: {
+        name: 'id',
+        in: 'path',
+        required: true,
+        description: 'Numeric record id',
+        schema: { type: 'integer', minimum: 1 },
+      },
     },
     schemas: {
       User: {
@@ -358,6 +553,23 @@ module.exports = {
         properties: {
           username: { type: 'string', example: 'senol' },
           email: { type: 'string', format: 'email', example: 'senol@example.com' },
+        },
+      },
+      Announcement: {
+        type: 'object',
+        properties: {
+          id: { type: 'integer' },
+          title: { type: 'string', example: 'Alumni Meetup 2026' },
+          content: { type: 'string', example: 'Join us for the annual alumni meetup in Istanbul.' },
+          createdAt: { type: 'string', format: 'date-time' },
+        },
+      },
+      AnnouncementInput: {
+        type: 'object',
+        required: ['title', 'content'],
+        properties: {
+          title: { type: 'string', example: 'Alumni Meetup 2026' },
+          content: { type: 'string', example: 'Join us for the annual alumni meetup in Istanbul.' },
         },
       },
       Alumnus: {

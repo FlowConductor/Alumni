@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title><%= announcement.title %> - MIS Alumni Portal</title>
+</head>
+<body>
+  <h1><%= announcement.title %></h1>
+  <p><strong>Id:</strong> <%= announcement.id %> | <strong>Created:</strong> <%= announcement.createdAt %></p>
+  <p><%= announcement.content %></p>
+  <p>
+    <a href="/announcements/<%= announcement.id %>/edit">Edit</a> |
+    <form method="POST" action="/announcements/<%= announcement.id %>/delete" style="display:inline">
+      <button type="submit">Delete</button>
+    </form>
+  </p>
+  <p><a href="/announcements">All announcements</a> | <a href="/">Back</a></p>
+</body>
+</html>
