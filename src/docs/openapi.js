@@ -16,6 +16,7 @@ module.exports = {
     { name: 'General', description: 'Temporary and health-check routes' },
     { name: 'Alumni', description: 'Alumni directory starter endpoints' },
     { name: 'Users', description: 'User CRUD endpoints (persisted to data/users.json)' },
+    { name: 'Users (Web)', description: 'HTML pages and form endpoints for users' },
   ],
   paths: {
     '/': {
@@ -240,6 +241,69 @@ module.exports = {
             },
           },
           404: { description: 'User not found' },
+        },
+      },
+    },
+    '/users': {
+      get: {
+        tags: ['Users (Web)'],
+        summary: 'Web page listing all users (HTML)',
+        responses: { 200: { description: 'HTML page with a table of all users' } },
+      },
+      post: {
+        tags: ['Users (Web)'],
+        summary: 'Create a user from an HTML form',
+        requestBody: {
+          required: true,
+          content: {
+            'application/x-www-form-urlencoded': {
+              schema: { $ref: '#/components/schemas/UserInput' },
+            },
+          },
+        },
+        responses: {
+          302: { description: 'Redirects to /users' },
+          400: { description: 'Missing username or email (HTML error page)' },
+        },
+      },
+    },
+    '/users/{id}': {
+      get: {
+        tags: ['Users (Web)'],
+        summary: 'Web page for a single user (HTML)',
+        parameters: [{ $ref: '#/components/parameters/UserId' }],
+        responses: {
+          200: { description: 'HTML page for the user' },
+          404: { description: 'User not found (HTML error page)' },
+        },
+      },
+      post: {
+        tags: ['Users (Web)'],
+        summary: 'Update a user from an HTML form',
+        parameters: [{ $ref: '#/components/parameters/UserId' }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/x-www-form-urlencoded': {
+              schema: { $ref: '#/components/schemas/UserInput' },
+            },
+          },
+        },
+        responses: {
+          302: { description: 'Redirects to /users/{id}' },
+          400: { description: 'Invalid input (HTML error page)' },
+          404: { description: 'User not found (HTML error page)' },
+        },
+      },
+    },
+    '/users/{id}/delete': {
+      post: {
+        tags: ['Users (Web)'],
+        summary: 'Delete a user from an HTML form',
+        parameters: [{ $ref: '#/components/parameters/UserId' }],
+        responses: {
+          302: { description: 'Redirects to /users' },
+          404: { description: 'User not found (HTML error page)' },
         },
       },
     },

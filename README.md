@@ -158,6 +158,7 @@ MIS/
 | Model (pending extraction) | inside `src/routes/alumni.js` | The alumni model is still an in-memory array inside its controller; it moves to `src/models/` when the MySQL layer is implemented |
 | View | responses produced by controllers | JSON records, JSON error objects, temporary HTML pages — the API's output layer |
 | Controller | `src/controllers/user.controller.js` (web) and `src/controllers/apiUser.controller.js` (API) | Full CRUD functions: validate input, call the model, produce the response — HTML pages and redirects for the web, JSON + status codes for the API |
+| Routes | `src/routes/*.js` | Map URLs and HTTP methods to controller functions: `apiUsers.js` → ApiUser controller (`/api/users`), `users.js` → User controller (`/users`), `alumni.js` and `general.js` → inline handlers |
 | Wiring | `server.js` | Creates the Express app, mounts the route files (which map to controllers) at their base paths, serves Swagger UI |
 
 ### Request flow
@@ -244,7 +245,7 @@ The backend's development server (Express) exposes the following starter routes 
 |--------|-------|-------------|
 | GET    | `/`   | Returns `"ok"`; will serve as the temporary main page |
 | GET    | `/api/health` | Health check; returns JSON with `status`, `uptime` (seconds), and `timestamp` |
-| GET    | `/api-docs` | Swagger UI — interactive API documentation for all endpoints (spec in `src/docs/openapi.js`) |
+| GET    | `/api-docs` | Swagger UI — interactive API documentation for all endpoints, both JSON API and web pages (spec in `src/docs/openapi.js`) |
 | GET    | `/users` | Web page listing all users (HTML) |
 | GET    | `/users/{id}` | Web page for one user (HTML); `404` page if not found |
 | POST   | `/users` | Create a user from an HTML form (fields: `username`, `email`); redirects to `/users` |
