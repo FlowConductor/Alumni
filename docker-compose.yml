@@ -1,0 +1,8 @@
+services:
+  app:
+    build: .
+    container_name: mis-alumni-portal
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/app/data
