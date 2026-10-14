@@ -13,15 +13,15 @@ function idParamOr400(req, res) {
   return id;
 }
 
-function getAll(req, res) {
-  res.json(AnnouncementModel.findAll());
+async function getAll(req, res) {
+  res.json(await AnnouncementModel.findAll());
 }
 
-function getById(req, res) {
+async function getById(req, res) {
   const id = idParamOr400(req, res);
   if (id === null) return;
 
-  const announcement = AnnouncementModel.findById(id);
+  const announcement = await AnnouncementModel.findById(id);
   if (!announcement) {
     return res.status(404).json({ error: `Announcement with id ${id} not found.` });
   }
@@ -29,7 +29,7 @@ function getById(req, res) {
   res.json(announcement);
 }
 
-function create(req, res) {
+async function create(req, res) {
   const { title, content } = req.body || {};
 
   if (!title || typeof title !== 'string' || !title.trim()) {
@@ -39,11 +39,11 @@ function create(req, res) {
     return res.status(400).json({ error: 'Field "content" is required.' });
   }
 
-  const created = AnnouncementModel.create({ title: title.trim(), content: content.trim() });
+  const created = await AnnouncementModel.create({ title: title.trim(), content: content.trim() });
   res.status(201).json(created);
 }
 
-function update(req, res) {
+async function update(req, res) {
   const id = idParamOr400(req, res);
   if (id === null) return;
 
@@ -56,7 +56,7 @@ function update(req, res) {
     return res.status(400).json({ error: 'Field "content" must be a non-empty string.' });
   }
 
-  const updated = AnnouncementModel.update(id, {
+  const updated = await AnnouncementModel.update(id, {
     ...(title !== undefined && { title: title.trim() }),
     ...(content !== undefined && { content: content.trim() }),
   });
@@ -68,11 +68,11 @@ function update(req, res) {
   res.json(updated);
 }
 
-function remove(req, res) {
+async function remove(req, res) {
   const id = idParamOr400(req, res);
   if (id === null) return;
 
-  const removed = AnnouncementModel.remove(id);
+  const removed = await AnnouncementModel.remove(id);
   if (!removed) {
     return res.status(404).json({ error: `Announcement with id ${id} not found.` });
   }

@@ -114,7 +114,7 @@ The staff-facing side of the tracking system.
 | Backend   | JavaScript, Node.js| Server-side logic and APIs (Express)            |
 | Database  | MySQL              | Relational data storage for alumni records        |
 
-> Note: the backend uses Express for HTTP routing and EJS as the template engine for the view layer. The ORM/database tooling and migration setup are **TBD** — until MySQL is integrated, the alumni data is kept in an in-memory store with seed records.
+> Note: the backend uses Express for HTTP routing, EJS for the view layer, and mysql2 for the MySQL data layer (migrations and factories in `src/db/`). Only the `/alumni` endpoints still use an in-memory store with seed records.
 
 ## Project Structure (MVC)
 
@@ -133,9 +133,7 @@ MIS/
 ├── package.json            Dependencies and npm scripts (start, dev)
 ├── README.md               This document
 ├── .gitignore              Ignores node_modules/, .env, data/
-├── data/                   Runtime data (gitignored, auto-created)
-│   ├── users.json          Persisted user records, written by the User model
-│   └── announcements.json   Persisted announcement records, written by the Announcement model
+├── data/                   Legacy JSON data from the pre-MySQL phase (gitignored, unused)
 └── src/
     ├── controllers/        Controllers
     │   ├── user.controller.js      User controller: web CRUD (HTML pages + forms) for /users
@@ -150,8 +148,8 @@ MIS/
     │   ├── apiAnnouncements.js    /api/announcements routes -> ApiAnnouncement controller
     │   └── announcements.js      /announcements routes -> Announcement controller
     ├── models/             Models
-    │   ├── user.model.js      User model: create, findAll, findById, update, remove (CRUD) on data/users.json
-    │   └── announcement.model.js  Announcement model: same CRUD on data/announcements.json
+    │   ├── user.model.js      User model: create, findAll, findById, update, remove (CRUD) on the MySQL users table
+    │   └── announcement.model.js  Announcement model: same CRUD on the MySQL announcements table
     ├── views/             View layer (EJS templates)
     │   ├── error.ejs              Error page (400/404)
     │   └── users/
@@ -172,7 +170,7 @@ MIS/
 
 | MVC role | Location | Responsibility |
 |----------|----------|----------------|
-| Model | `src/models/user.model.js` | The User model: `create`, `findAll`, `findById`, `update`, `remove` (full CRUD) — persisted to `data/users.json`, no database |
+| Model | `src/models/user.model.js` | The User model: `create`, `findAll`, `findById`, `update`, `remove` (full CRUD) — backed by the MySQL `users` table |
 | Model (pending extraction) | inside `src/routes/alumni.js` | The alumni model is still an in-memory array inside its controller; it moves to `src/models/` when the MySQL layer is implemented |
 | View | `src/views/*.ejs` (web) and JSON responses (API) | EJS templates: `users/index.ejs` (list), `users/create.ejs` (create form), `users/details.ejs` (detail), `users/edit.ejs` (edit form), `error.ejs` (error pages); the ApiUser controller's JSON output is the API's view |
 | Controller | `src/controllers/user.controller.js` (web) and `src/controllers/apiUser.controller.js` (API) | Full CRUD functions: validate input, call the model, produce the response — HTML pages and redirects for the web, JSON + status codes for the API |
@@ -185,20 +183,20 @@ MIS/
 Client request
    → server.js (express.json, route mounting)
    → Controller (src/routes/) — validates input, e.g. username/email
-   → Model (src/models/) — load/modify/save data/users.json
+   → Model (src/models/) — query the MySQL database
    ← Controller responds with the view: JSON record + status code
 ```
 
-A POST to `/api/users`, for example: `server.js` parses the JSON body, the controller in `src/routes/users.js` validates `username` and `email`, the model in `src/models/user.model.js` appends the record to `data/users.json` and returns it, and the controller sends back `201` with the created user.
+A POST to `/api/users`, for example: `server.js` parses the JSON body, the controller in `src/routes/users.js` validates `username` and `email`, the model in `src/models/user.model.js` inserts the record into the MySQL `users` table and returns it, and the controller sends back `201` with the created user.
 
 ## Getting Started
 
-> **Important:** The starter routes in [Current Routes](#current-routes) are implemented and running. MySQL is not set up yet, so the `/alumni` endpoints use an in-memory store with seed data, and `/api/users` persists to a local JSON file (`data/users.json`) instead of a database; the database-related steps below apply once MySQL is available. Items marked **TBD** have not been decided yet.
+> **Important:** The routes in [Current Routes](#current-routes) are implemented and running against MySQL (see [Database Setup](#database-setup)). Only the `/alumni` endpoints still use an in-memory store with seed data. Items marked **TBD** have not been decided yet.
 
 ### Prerequisites
 
 - **Node.js 18 or later** — download from [nodejs.org](https://nodejs.org) or use your system package manager.
-- **MySQL 8 or later** — download from [mysql.com](https://www.mysql.com) or run via Docker (not required yet; see [Database Setup](#database-setup-pending) below).
+- **MySQL 8 or later** — runs as a Docker service (see [Database Setup](#database-setup) below).
 - A code editor (recommended: VS Code).
 
 ### Installation
@@ -224,11 +222,11 @@ A POST to `/api/users`, for example: `server.js` parses the JSON body, the contr
 
    The server starts at `http://localhost:3000` (override with the `PORT` environment variable). For development with automatic restart on file changes, use `npm run dev`.
 
-### Database Setup (pending)
+### Database Setup
 
-MySQL is not integrated yet; the `/alumni` endpoints use an in-memory store with seed records. Once MySQL is available:
+MySQL runs as a Docker service (see `docker-compose.yml`), with the schema managed by SQL migrations and sample data provided by the factories:
 
-1. Create a `.env` file in the project root:
+1. Copy `.env.example` to `.env` in the project root and adjust the values:
 
    ```env
    DB_HOST=localhost
@@ -238,13 +236,21 @@ MySQL is not integrated yet; the `/alumni` endpoints use an in-memory store with
    DB_NAME=mis_alumni
    ```
 
-2. Create the database:
+2. Run the migrations (creates the `users`, `donate`, and `migrations` tables):
 
-   ```sql
-   CREATE DATABASE mis_alumni;
+   ```bash
+   npm run migrate
    ```
 
-*(Migration and seed scripts are **TBD** — database schema tooling will be chosen when the MySQL layer is implemented.)*
+3. Seed fake data (truncates and inserts 20 users and 40 donations; configurable via `SEED_USERS` / `SEED_DONATIONS`):
+
+   ```bash
+   npm run seed
+   ```
+
+With `docker compose up -d`, migrations run automatically before the app starts. To seed inside the Docker network, use `docker compose run --rm seed`.
+
+The User and Announcement models use this MySQL database; only the `/alumni` endpoints still use an in-memory store.
 
 ### Usage
 
@@ -271,7 +277,7 @@ The backend's development server (Express) exposes the following starter routes 
 | POST   | `/users` | Create a user from an HTML form (fields: `username`, `email`); redirects to `/users` |
 | POST   | `/users/{id}` | Update a user from an HTML form; redirects to `/users/{id}` |
 | POST   | `/users/{id}/delete` | Delete a user from an HTML form; redirects to `/users` |
-| GET    | `/api/announcements` | Returns the list of saved announcements (JSON; persisted to `data/announcements.json`) |
+| GET    | `/api/announcements` | Returns the list of saved announcements (JSON; stored in the MySQL `announcements` table) |
 | POST   | `/api/announcements` | Creates an announcement. Request body: `title` and `content` (both required). Returns `201` with the created record |
 | GET    | `/api/announcements/{id}` | Returns a single announcement by id, or `404` |
 | PUT / PATCH | `/api/announcements/{id}` | Updates an announcement by id (partial updates allowed) |
@@ -287,7 +293,7 @@ The backend's development server (Express) exposes the following starter routes 
 | GET    | `/api/users/{id}` | Returns a single user by id, or `404` if not found |
 | DELETE | `/api/users/{id}` | Deletes the user with the given id and returns the removed record, or `404` if not found |
 | PUT / PATCH | `/api/users/{id}` | Updates a user by id. Request body: `username` and/or `email` (partial updates allowed). Returns the updated record, or `404` if the id does not exist |
-| POST   | `/api/users` | Creates a user. Request body: `username` and `email` (both required). Returns `201` with `{"username": "...", "email": "..."}`. Users are persisted to `data/users.json` (no database) |
+| POST   | `/api/users` | Creates a user. Request body: `username` and `email` (both required). Returns `201` with `{"username": "...", "email": "..."}`; duplicate username/email returns `409`. Users are stored in the MySQL `users` table |
 | GET    | `/about` | Temporary about page (HTML) |
 | GET    | `/alumni` | Returns the list of alumni records (JSON; in-memory store with seed data) |
 | POST   | `/alumni` | Creates an alumni record. Request body: `name` (required), `graduationYear` (integer, optional), `email` (optional). Returns `201` with the created record |
@@ -371,3 +377,12 @@ Contributions are welcome. Since the project has no code yet, the most valuable 
 ## License
 
 **TBD** — the license for this project has not been chosen yet. Until a license is decided and a `LICENSE` file is added, all rights are reserved.
+
+
+## update rule
+
+- Check the ddd.md for Database Design Documentation
+- if you change database design change ddd.md
+- update docker-compose.yml when you change the system
+
+

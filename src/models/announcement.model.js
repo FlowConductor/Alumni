@@ -1,68 +1,71 @@
-// Announcement Model — MVC model layer for announcements.
-// File-backed (data/announcements.json): no database required, data survives restarts.
-// Will be replaced by the MySQL data layer once the database is set up.
+// Announcement Model — MVC model layer for announcements, backed by the
+// MySQL `announcements` table (see src/db/migrations/003_create_announcements_table.sql).
 
-const fs = require('fs');
-const path = require('path');
+const db = require('../db/database');
 
-const DATA_DIR = path.join(__dirname, '..', '..', 'data');
-const ANNOUNCEMENTS_FILE = path.join(DATA_DIR, 'announcements.json');
+const SELECT = 'SELECT id, title, content, created_at FROM announcements';
 
-function load() {
-  try {
-    return JSON.parse(fs.readFileSync(ANNOUNCEMENTS_FILE, 'utf8'));
-  } catch (err) {
-    if (err.code === 'ENOENT') return [];
-    throw err;
-  }
-}
-
-function save(announcements) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-  fs.writeFileSync(ANNOUNCEMENTS_FILE, JSON.stringify(announcements, null, 2));
+function toAnnouncement(row) {
+  return { id: row.id, title: row.title, content: row.content, createdAt: row.created_at };
 }
 
 // CREATE
-function create({ title, content }) {
-  const announcements = load();
-  const id = announcements.reduce((max, a) => Math.max(max, a.id), 0) + 1;
-  const announcement = { id, title, content, createdAt: new Date().toISOString() };
-  announcements.push(announcement);
-  save(announcements);
-  return announcement;
+async function create({ title, content }) {
+  const [result] = await db.query(
+    'INSERT INTO announcements (title, content) VALUES (?, ?)',
+    [title, content]
+  );
+  const [rows] = await db.query(`${SELECT} WHERE id = ?`, [result.insertId]);
+  return toAnnouncement(rows[0]);
 }
 
 // READ
-function findAll() {
-  return load();
+async function findAll() {
+  const [rows] = await db.query(`${SELECT} ORDER BY id`);
+  return rows.map(toAnnouncement);
 }
 
-function findById(id) {
-  return load().find((a) => a.id === id) || null;
+async function findById(id) {
+  const [rows] = await db.query(`${SELECT} WHERE id = ?`, [id]);
+  return rows[0] ? toAnnouncement(rows[0]) : null;
 }
 
 // UPDATE
-function update(id, fields) {
-  const announcements = load();
-  const announcement = announcements.find((a) => a.id === id);
-  if (!announcement) return null;
+async function update(id, fields) {
+  const sets = [];
+  const values = [];
 
-  if (fields.title !== undefined) announcement.title = fields.title;
-  if (fields.content !== undefined) announcement.content = fields.content;
+  if (fields.title !== undefined) {
+    sets.push('title = ?');
+    values.push(fields.title);
+  }
+  if (fields.content !== undefined) {
+    sets.push('content = ?');
+    values.push(fields.content);
+  }
 
-  save(announcements);
-  return announcement;
+  if (sets.length === 0) {
+    return findById(id);
+  }
+
+  values.push(id);
+  const [result] = await db.query(`UPDATE announcements SET ${sets.join(', ')} WHERE id = ?`, values);
+  if (result.affectedRows === 0) {
+    return null;
+  }
+
+  return findById(id);
 }
 
 // DELETE
-function remove(id) {
-  const announcements = load();
-  const index = announcements.findIndex((a) => a.id === id);
-  if (index === -1) return null;
+async function remove(id) {
+  const announcement = await findById(id);
+  if (!announcement) {
+    return null;
+  }
 
-  const [removed] = announcements.splice(index, 1);
-  save(announcements);
-  return removed;
+  await db.query('DELETE FROM announcements WHERE id = ?', [id]);
+  return announcement;
 }
 
 module.exports = { create, findAll, findById, update, remove };

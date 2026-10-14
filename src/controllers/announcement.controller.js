@@ -5,14 +5,14 @@
 const AnnouncementModel = require('../models/announcement.model');
 
 // READ (all) — view: src/views/announcements/index.ejs
-function list(req, res) {
-  res.render('announcements/index', { announcements: AnnouncementModel.findAll() });
+async function list(req, res) {
+  res.render('announcements/index', { announcements: await AnnouncementModel.findAll() });
 }
 
 // READ (one) — view: src/views/announcements/details.ejs
-function details(req, res) {
+async function details(req, res) {
   const id = Number(req.params.id);
-  const announcement = Number.isInteger(id) ? AnnouncementModel.findById(id) : null;
+  const announcement = Number.isInteger(id) ? await AnnouncementModel.findById(id) : null;
 
   if (!announcement) {
     return res.status(404).render('error', {
@@ -30,7 +30,7 @@ function createForm(req, res) {
 }
 
 // CREATE (HTML form)
-function create(req, res) {
+async function create(req, res) {
   const title = (req.body.title || '').trim();
   const content = (req.body.content || '').trim();
 
@@ -41,14 +41,14 @@ function create(req, res) {
     });
   }
 
-  AnnouncementModel.create({ title, content });
+  await AnnouncementModel.create({ title, content });
   res.redirect('/announcements');
 }
 
 // UPDATE (form view) — view: src/views/announcements/edit.ejs
-function editForm(req, res) {
+async function editForm(req, res) {
   const id = Number(req.params.id);
-  const announcement = Number.isInteger(id) ? AnnouncementModel.findById(id) : null;
+  const announcement = Number.isInteger(id) ? await AnnouncementModel.findById(id) : null;
 
   if (!announcement) {
     return res.status(404).render('error', {
@@ -61,7 +61,7 @@ function editForm(req, res) {
 }
 
 // UPDATE (HTML form)
-function update(req, res) {
+async function update(req, res) {
   const id = Number(req.params.id);
   const title = (req.body.title || '').trim();
   const content = (req.body.content || '').trim();
@@ -73,7 +73,7 @@ function update(req, res) {
     });
   }
 
-  const updated = AnnouncementModel.update(id, { title, content });
+  const updated = await AnnouncementModel.update(id, { title, content });
   if (!updated) {
     return res.status(404).render('error', {
       title: 'Announcement not found',
@@ -85,7 +85,7 @@ function update(req, res) {
 }
 
 // DELETE (HTML form)
-function remove(req, res) {
+async function remove(req, res) {
   const id = Number(req.params.id);
 
   if (!Number.isInteger(id)) {
@@ -95,7 +95,7 @@ function remove(req, res) {
     });
   }
 
-  const removed = AnnouncementModel.remove(id);
+  const removed = await AnnouncementModel.remove(id);
   if (!removed) {
     return res.status(404).render('error', {
       title: 'Announcement not found',

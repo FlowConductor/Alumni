@@ -5,14 +5,14 @@
 const UserModel = require('../models/user.model');
 
 // READ (all) — view: src/views/users/index.ejs
-function list(req, res) {
-  res.render('users/index', { users: UserModel.findAll() });
+async function list(req, res) {
+  res.render('users/index', { users: await UserModel.findAll() });
 }
 
 // READ (one) — view: src/views/users/details.ejs
-function details(req, res) {
+async function details(req, res) {
   const id = Number(req.params.id);
-  const user = Number.isInteger(id) ? UserModel.findById(id) : null;
+  const user = Number.isInteger(id) ? await UserModel.findById(id) : null;
 
   if (!user) {
     return res.status(404).render('error', {
@@ -29,10 +29,37 @@ function createForm(req, res) {
   res.render('users/create');
 }
 
+// CREATE (HTML form)
+async function create(req, res) {
+  const username = (req.body.username || '').trim();
+  const email = (req.body.email || '').trim();
+
+  if (!username || !email) {
+    return res.status(400).render('error', {
+      title: 'Invalid input',
+      message: 'Both username and email are required.',
+    });
+  }
+
+  try {
+    await UserModel.create({ username, email });
+  } catch (err) {
+    if (err.code === 'ER_DUP_ENTRY') {
+      return res.status(409).render('error', {
+        title: 'Duplicate user',
+        message: 'That username or email is already taken.',
+      });
+    }
+    throw err;
+  }
+
+  res.redirect('/users');
+}
+
 // UPDATE (form view) — view: src/views/users/edit.ejs
-function editForm(req, res) {
+async function editForm(req, res) {
   const id = Number(req.params.id);
-  const user = Number.isInteger(id) ? UserModel.findById(id) : null;
+  const user = Number.isInteger(id) ? await UserModel.findById(id) : null;
 
   if (!user) {
     return res.status(404).render('error', {
@@ -44,24 +71,8 @@ function editForm(req, res) {
   res.render('users/edit', { user });
 }
 
-// CREATE (HTML form)
-function create(req, res) {
-  const username = (req.body.username || '').trim();
-  const email = (req.body.email || '').trim();
-
-  if (!username || !email) {
-    return res.status(400).render('error', {
-      title: 'Invalid input',
-      message: 'Both username and email are required.',
-    });
-  }
-
-  UserModel.create({ username, email });
-  res.redirect('/users');
-}
-
 // UPDATE (HTML form)
-function update(req, res) {
+async function update(req, res) {
   const id = Number(req.params.id);
   const username = (req.body.username || '').trim();
   const email = (req.body.email || '').trim();
@@ -73,7 +84,19 @@ function update(req, res) {
     });
   }
 
-  const updated = UserModel.update(id, { username, email });
+  let updated;
+  try {
+    updated = await UserModel.update(id, { username, email });
+  } catch (err) {
+    if (err.code === 'ER_DUP_ENTRY') {
+      return res.status(409).render('error', {
+        title: 'Duplicate user',
+        message: 'That username or email is already taken.',
+      });
+    }
+    throw err;
+  }
+
   if (!updated) {
     return res.status(404).render('error', {
       title: 'User not found',
@@ -85,7 +108,7 @@ function update(req, res) {
 }
 
 // DELETE (HTML form)
-function remove(req, res) {
+async function remove(req, res) {
   const id = Number(req.params.id);
 
   if (!Number.isInteger(id)) {
@@ -95,7 +118,7 @@ function remove(req, res) {
     });
   }
 
-  const removed = UserModel.remove(id);
+  const removed = await UserModel.remove(id);
   if (!removed) {
     return res.status(404).render('error', {
       title: 'User not found',

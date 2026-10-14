@@ -12,15 +12,19 @@ function idParamOr400(req, res) {
   return id;
 }
 
-function getAll(req, res) {
-  res.json(UserModel.findAll());
+function isDuplicate(err) {
+  return err && err.code === 'ER_DUP_ENTRY';
 }
 
-function getById(req, res) {
+async function getAll(req, res) {
+  res.json(await UserModel.findAll());
+}
+
+async function getById(req, res) {
   const id = idParamOr400(req, res);
   if (id === null) return;
 
-  const user = UserModel.findById(id);
+  const user = await UserModel.findById(id);
   if (!user) {
     return res.status(404).json({ error: `User with id ${id} not found.` });
   }
@@ -28,7 +32,7 @@ function getById(req, res) {
   res.json(user);
 }
 
-function create(req, res) {
+async function create(req, res) {
   const { username, email } = req.body || {};
 
   if (!username || typeof username !== 'string' || !username.trim()) {
@@ -38,11 +42,20 @@ function create(req, res) {
     return res.status(400).json({ error: 'Field "email" must be a valid email address.' });
   }
 
-  const created = UserModel.create({ username: username.trim(), email: email.trim() });
+  let created;
+  try {
+    created = await UserModel.create({ username: username.trim(), email: email.trim() });
+  } catch (err) {
+    if (isDuplicate(err)) {
+      return res.status(409).json({ error: 'A user with that username or email already exists.' });
+    }
+    throw err;
+  }
+
   res.status(201).json({ username: created.username, email: created.email });
 }
 
-function update(req, res) {
+async function update(req, res) {
   const id = idParamOr400(req, res);
   if (id === null) return;
 
@@ -55,10 +68,18 @@ function update(req, res) {
     return res.status(400).json({ error: 'Field "email" must be a valid email address.' });
   }
 
-  const updated = UserModel.update(id, {
-    ...(username !== undefined && { username: username.trim() }),
-    ...(email !== undefined && { email: email.trim() }),
-  });
+  let updated;
+  try {
+    updated = await UserModel.update(id, {
+      ...(username !== undefined && { username: username.trim() }),
+      ...(email !== undefined && { email: email.trim() }),
+    });
+  } catch (err) {
+    if (isDuplicate(err)) {
+      return res.status(409).json({ error: 'A user with that username or email already exists.' });
+    }
+    throw err;
+  }
 
   if (!updated) {
     return res.status(404).json({ error: `User with id ${id} not found.` });
@@ -67,11 +88,11 @@ function update(req, res) {
   res.json(updated);
 }
 
-function remove(req, res) {
+async function remove(req, res) {
   const id = idParamOr400(req, res);
   if (id === null) return;
 
-  const removed = UserModel.remove(id);
+  const removed = await UserModel.remove(id);
   if (!removed) {
     return res.status(404).json({ error: `User with id ${id} not found.` });
   }

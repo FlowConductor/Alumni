@@ -1,68 +1,67 @@
-// User Model — MVC model layer for users.
-// File-backed (data/users.json): no database required, data survives restarts.
-// Will be replaced by the MySQL data layer once the database is set up.
+// User Model — MVC model layer for users, backed by the MySQL `users` table
+// (see ddd.md and src/db/migrations/001_create_users_table.sql).
 
-const fs = require('fs');
-const path = require('path');
+const db = require('../db/database');
 
-const DATA_DIR = path.join(__dirname, '..', '..', 'data');
-const USERS_FILE = path.join(DATA_DIR, 'users.json');
-
-function load() {
-  try {
-    return JSON.parse(fs.readFileSync(USERS_FILE, 'utf8'));
-  } catch (err) {
-    if (err.code === 'ENOENT') return [];
-    throw err;
-  }
-}
-
-function save(users) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-  fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
-}
+const SELECT = 'SELECT id, username, email FROM users';
 
 // CREATE
-function create({ username, email }) {
-  const users = load();
-  const id = users.reduce((max, u) => Math.max(max, u.id), 0) + 1;
-  const user = { id, username, email };
-  users.push(user);
-  save(users);
-  return user;
+async function create({ username, email }) {
+  const [result] = await db.query(
+    'INSERT INTO users (username, email) VALUES (?, ?)',
+    [username, email]
+  );
+  const [rows] = await db.query(`${SELECT} WHERE id = ?`, [result.insertId]);
+  return rows[0];
 }
 
 // READ
-function findAll() {
-  return load();
+async function findAll() {
+  const [rows] = await db.query(`${SELECT} ORDER BY id`);
+  return rows;
 }
 
-function findById(id) {
-  return load().find((u) => u.id === id) || null;
+async function findById(id) {
+  const [rows] = await db.query(`${SELECT} WHERE id = ?`, [id]);
+  return rows[0] || null;
 }
 
 // UPDATE
-function update(id, fields) {
-  const users = load();
-  const user = users.find((u) => u.id === id);
-  if (!user) return null;
+async function update(id, fields) {
+  const sets = [];
+  const values = [];
 
-  if (fields.username !== undefined) user.username = fields.username;
-  if (fields.email !== undefined) user.email = fields.email;
+  if (fields.username !== undefined) {
+    sets.push('username = ?');
+    values.push(fields.username);
+  }
+  if (fields.email !== undefined) {
+    sets.push('email = ?');
+    values.push(fields.email);
+  }
 
-  save(users);
-  return user;
+  if (sets.length === 0) {
+    return findById(id);
+  }
+
+  values.push(id);
+  const [result] = await db.query(`UPDATE users SET ${sets.join(', ')} WHERE id = ?`, values);
+  if (result.affectedRows === 0) {
+    return null;
+  }
+
+  return findById(id);
 }
 
 // DELETE
-function remove(id) {
-  const users = load();
-  const index = users.findIndex((u) => u.id === id);
-  if (index === -1) return null;
+async function remove(id) {
+  const user = await findById(id);
+  if (!user) {
+    return null;
+  }
 
-  const [removed] = users.splice(index, 1);
-  save(users);
-  return removed;
+  await db.query('DELETE FROM users WHERE id = ?', [id]);
+  return user;
 }
 
 module.exports = { create, findAll, findById, update, remove };
