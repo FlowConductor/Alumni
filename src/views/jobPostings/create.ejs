@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>New Job Posting - MIS Alumni Portal</title>
+</head>
+<body>
+  <h1>New Job Posting</h1>
+  <form method="POST" action="/job-postings">
+    <p>
+      <label for="title">Title:</label><br>
+      <input type="text" id="title" name="title" required>
+    </p>
+    <p>
+      <label for="company">Company:</label><br>
+      <input type="text" id="company" name="company" required>
+    </p>
+    <p>
+      <label for="posted_by">Posted by (user id, optional):</label><br>
+      <input type="number" id="posted_by" name="posted_by" min="1">
+    </p>
+    <p>
+      <label for="location">Location (optional):</label><br>
+      <input type="text" id="location" name="location">
+    </p>
+    <p>
+      <label for="description">Description (optional):</label><br>
+      <textarea id="description" name="description" rows="4" cols="60"></textarea>
+    </p>
+    <p>
+      <label for="status">Status:</label>
+      <select id="status" name="status">
+        <option value="open">open</option>
+        <option value="closed">closed</option>
+      </select>
+    </p>
+    <button type="submit">Create</button>
+  </form>
+  <p><a href="/job-postings">All job postings</a> | <a href="/">Back</a></p>
+</body>
+</html>

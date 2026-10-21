@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Edit <%= posting.title %> - MIS Alumni Portal</title>
+</head>
+<body>
+  <h1>Edit Job Posting</h1>
+  <form method="POST" action="/job-postings/<%= posting.id %>">
+    <p>
+      <label for="title">Title:</label><br>
+      <input type="text" id="title" name="title" value="<%= posting.title %>" required>
+    </p>
+    <p>
+      <label for="company">Company:</label><br>
+      <input type="text" id="company" name="company" value="<%= posting.company %>" required>
+    </p>
+    <p>
+      <label for="posted_by">Posted by (user id, optional):</label><br>
+      <input type="number" id="posted_by" name="posted_by" min="1" value="<%= posting.postedBy || '' %>">
+    </p>
+    <p>
+      <label for="location">Location (optional):</label><br>
+      <input type="text" id="location" name="location" value="<%= posting.location || '' %>">
+    </p>
+    <p>
+      <label for="description">Description (optional):</label><br>
+      <textarea id="description" name="description" rows="4" cols="60"><%= posting.description || '' %></textarea>
+    </p>
+    <p>
+      <label for="status">Status:</label>
+      <select id="status" name="status">
+        <option value="open" <%= posting.status === 'open' ? 'selected' : '' %>>open</option>
+        <option value="closed" <%= posting.status === 'closed' ? 'selected' : '' %>>closed</option>
+      </select>
+    </p>
+    <button type="submit">Save</button>
+  </form>
+  <p><a href="/job-postings/<%= posting.id %>">Back to posting</a> | <a href="/job-postings">All job postings</a></p>
+</body>
+</html>

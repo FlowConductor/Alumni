@@ -139,17 +139,30 @@ MIS/
     │   ├── user.controller.js      User controller: web CRUD (HTML pages + forms) for /users
     │   ├── apiUser.controller.js   ApiUser controller: JSON CRUD for /api/users
     │   ├── announcement.controller.js    Announcement controller: web CRUD (HTML pages + forms) for /announcements
-    │   └── apiAnnouncement.controller.js  ApiAnnouncement controller: JSON CRUD for /api/announcements
+    │   ├── apiAnnouncement.controller.js  ApiAnnouncement controller: JSON CRUD for /api/announcements
+    │   ├── apiDonation.controller.js   ApiDonation controller: JSON CRUD for /api/donations (direct + nested)
+    │   ├── apiJobPosting.controller.js  ApiJobPosting controller: JSON CRUD for /api/job-postings (direct + nested)
+    │   └── apiApplication.controller.js  ApiApplication controller: JSON CRUD for /api/applications (direct + nested under users and job-postings)
+    │   └── jobPosting.controller.js  JobPosting controller: web CRUD + apply form for /job-postings
     ├── routes/             Route definitions (mapped to controllers)
     │   ├── general.js      / , /about , /hello , /hello/:name , /sum/... , /api/health
     │   ├── alumni.js       GET/POST /alumni (in-memory alumni model + seed data)
     │   ├── apiUsers.js     /api/users routes -> ApiUser controller
     │   ├── users.js        /users routes -> User controller
     │   ├── apiAnnouncements.js    /api/announcements routes -> ApiAnnouncement controller
-    │   └── announcements.js      /announcements routes -> Announcement controller
+    │   ├── apiDonations.js        /api/donations routes -> ApiDonation controller (direct)
+    │   ├── apiJobPostings.js     /api/job-postings routes -> ApiJobPosting controller (direct)
+    │   ├── apiUserResources.js    Nested routes under /api/users (donations, job-postings, applications by user)
+    │   ├── apiApplications.js     /api/applications routes -> ApiApplication controller (direct)
+    │   ├── apiJobPostingResources.js   Nested routes under /api/job-postings (applications per posting)
+    │   └── jobPostings.js       /job-postings routes -> JobPosting controller (web UI)
+    │   ├── announcements.js      /announcements routes -> Announcement controller
     ├── models/             Models
     │   ├── user.model.js      User model: create, findAll, findById, update, remove (CRUD) on the MySQL users table
-    │   └── announcement.model.js  Announcement model: same CRUD on the MySQL announcements table
+    │   ├── announcement.model.js  Announcement model: same CRUD on the MySQL announcements table
+    │   ├── donation.model.js    Donation model: CRUD on the donate table, joined to users (donor relationship)
+    │   ├── jobPosting.model.js  Job Posting model: CRUD on job_postings, optionally joined to users (poster relationship)
+    │   └── application.model.js Application model: CRUD on job_applications, joined to users and job_postings
     ├── views/             View layer (EJS templates)
     │   ├── error.ejs              Error page (400/404)
     │   └── users/
@@ -162,6 +175,11 @@ MIS/
     │       ├── create.ejs         Create form page (GET /announcements/new)
     │       ├── details.ejs        Announcement detail page (GET /announcements/:id)
     │       └── edit.ejs           Edit form page (GET /announcements/:id/edit)
+    │   └── jobPostings/
+    │       ├── index.ejs          Job posting list page (GET /job-postings)
+    │       ├── create.ejs         Create form page (GET /job-postings/new)
+    │       ├── details.ejs        Posting detail page with applications + apply form (GET /job-postings/:id)
+    │       └── edit.ejs           Edit form page (GET /job-postings/:id/edit)
     └── docs/               API documentation
         └── openapi.js      OpenAPI 3.0 spec served by Swagger UI at /api-docs
 ```
@@ -289,6 +307,33 @@ The backend's development server (Express) exposes the following starter routes 
 | POST   | `/announcements` | Create an announcement from an HTML form; redirects to `/announcements` |
 | POST   | `/announcements/{id}` | Update an announcement from an HTML form; redirects to `/announcements/{id}` |
 | POST   | `/announcements/{id}/delete` | Delete an announcement from an HTML form; redirects to `/announcements` |
+| GET    | `/api/donations` | Returns all donations (JSON), each joined with the donor's username |
+| POST   | `/api/donations` | Creates a donation. Request body: `user_id` and `amount` (required), `currency`, `campaign`, `status` optional. Returns `201`; `404` if the user does not exist |
+| GET    | `/api/donations/{id}` | Returns a single donation by id, or `404` |
+| PUT / PATCH | `/api/donations/{id}` | Updates a donation by id (partial updates allowed) |
+| DELETE | `/api/donations/{id}` | Deletes a donation by id and returns the removed record |
+| GET    | `/api/users/{userId}/donations` | **Nested route:** donations made by one user |
+| GET    | `/api/job-postings` | Returns all job postings (JSON), with the poster's username when set |
+| POST   | `/api/job-postings` | Creates a job posting. Request body: `title` and `company` (required), `posted_by`, `description`, `location`, `status` optional. Returns `201`; `404` if `posted_by` does not exist |
+| GET    | `/api/job-postings/{id}` | Returns a single job posting by id, or `404` |
+| PUT / PATCH | `/api/job-postings/{id}` | Updates a job posting by id (partial updates allowed) |
+| DELETE | `/api/job-postings/{id}` | Deletes a job posting by id and returns the removed record |
+| GET    | `/api/users/{userId}/job-postings` | **Nested route:** job postings published by one user |
+| GET    | `/api/applications` | Returns all job applications (JSON), each joined with the applicant's username and the posting's title/company |
+| POST   | `/api/applications` | Applies to a job posting. Request body: `job_posting_id` and `user_id` (required), `cover_letter`, `status` optional. Returns `201`; `404` if the posting/user does not exist; `409` if the user already applied |
+| GET    | `/api/applications/{id}` | Returns a single application by id, or `404` |
+| PUT / PATCH | `/api/applications/{id}` | Updates an application by id (`status`, `cover_letter`) |
+| DELETE | `/api/applications/{id}` | Deletes an application by id and returns the removed record |
+| GET    | `/api/users/{userId}/applications` | **Nested route:** applications made by one user |
+| GET    | `/api/job-postings/{id}/applications` | **Nested route:** applications received by one job posting |
+| GET    | `/job-postings` | Web page listing all job postings (EJS view: `jobPostings/index.ejs`) with view/edit/delete actions |
+| GET    | `/job-postings/new` | Create form page (EJS view: `jobPostings/create.ejs`) |
+| GET    | `/job-postings/{id}` | Posting detail page with its applications and an apply form (EJS view: `jobPostings/details.ejs`) |
+| GET    | `/job-postings/{id}/edit` | Edit form page prefilled with the posting (EJS view: `jobPostings/edit.ejs`) |
+| POST   | `/job-postings` | Create a posting from an HTML form; redirects to `/job-postings` |
+| POST   | `/job-postings/{id}` | Update a posting from an HTML form; redirects to `/job-postings/{id}` |
+| POST   | `/job-postings/{id}/delete` | Delete a posting from an HTML form; `409` if it still has applications |
+| POST   | `/job-postings/{id}/apply` | Apply to a posting from the HTML form (fields: `user_id`, optional `cover_letter`); `409` if already applied |
 | GET    | `/api/users` | Returns the list of saved users (JSON) |
 | GET    | `/api/users/{id}` | Returns a single user by id, or `404` if not found |
 | DELETE | `/api/users/{id}` | Deletes the user with the given id and returns the removed record, or `404` if not found |

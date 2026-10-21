@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title><%= posting.title %> - MIS Alumni Portal</title>
+</head>
+<body>
+  <h1><%= posting.title %></h1>
+  <p>
+    <strong>Company:</strong> <%= posting.company %> |
+    <strong>Location:</strong> <%= posting.location || '-' %> |
+    <strong>Status:</strong> <%= posting.status %> |
+    <strong>Posted by:</strong> <%= posting.postedByUsername || 'Company' %>
+  </p>
+  <% if (posting.description) { %><p><%= posting.description %></p><% } %>
+
+  <h2>Applications (<%= applications.length %>)</h2>
+  <table border="1" cellpadding="6">
+    <thead><tr><th>Id</th><th>Applicant</th><th>Status</th><th>Cover letter</th><th>Applied at</th></tr></thead>
+    <tbody>
+      <% applications.forEach((application) => { %>
+      <tr>
+        <td><%= application.id %></td>
+        <td><%= application.applicantUsername %> (#<%= application.userId %>)</td>
+        <td><%= application.status %></td>
+        <td><%= application.coverLetter || '-' %></td>
+        <td><%= application.createdAt %></td>
+      </tr>
+      <% }); %>
+    </tbody>
+  </table>
+
+  <h2>Apply</h2>
+  <form method="POST" action="/job-postings/<%= posting.id %>/apply">
+    <p>
+      <label for="user_id">Your user id:</label><br>
+      <input type="number" id="user_id" name="user_id" min="1" required>
+    </p>
+    <p>
+      <label for="cover_letter">Cover letter (optional):</label><br>
+      <textarea id="cover_letter" name="cover_letter" rows="4" cols="60"></textarea>
+    </p>
+    <button type="submit">Apply</button>
+  </form>
+
+  <p>
+    <a href="/job-postings/<%= posting.id %>/edit">Edit</a> |
+    <form method="POST" action="/job-postings/<%= posting.id %>/delete" style="display:inline">
+      <button type="submit">Delete</button>
+    </form>
+  </p>
+  <p><a href="/job-postings">All job postings</a> | <a href="/">Back</a></p>
+</body>
+</html>

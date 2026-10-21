@@ -19,6 +19,10 @@ module.exports = {
     { name: 'Users (Web)', description: 'HTML pages and form endpoints for users' },
     { name: 'Announcements', description: 'Announcement CRUD endpoints (persisted to data/announcements.json)' },
     { name: 'Announcements (Web)', description: 'HTML pages and form endpoints for announcements' },
+    { name: 'Donations', description: 'Donation CRUD endpoints (donate table, joined to users)' },
+    { name: 'Job Postings', description: 'Job posting CRUD endpoints (job_postings table, optionally joined to users)' },
+    { name: 'Job Applications', description: 'Job application CRUD endpoints (job_applications table, joined to users and job_postings)' },
+    { name: 'Job Postings (Web)', description: 'HTML pages and form endpoints for job postings and applications' },
   ],
   paths: {
     '/': {
@@ -432,6 +436,367 @@ module.exports = {
         },
       },
     },
+    '/api/donations': {
+      get: {
+        tags: ['Donations'],
+        summary: 'List all donations (joined with donor usernames)',
+        responses: {
+          200: {
+            description: 'Donation records',
+            content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/Donation' } } } },
+          },
+        },
+      },
+      post: {
+        tags: ['Donations'],
+        summary: 'Create a donation',
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { $ref: '#/components/schemas/DonationInput' } } },
+        },
+        responses: {
+          201: { description: 'Created donation', content: { 'application/json': { schema: { $ref: '#/components/schemas/Donation' } } } },
+          400: { description: 'Validation error' },
+          404: { description: 'Referenced user does not exist' },
+        },
+      },
+    },
+    '/api/donations/{id}': {
+      get: {
+        tags: ['Donations'],
+        summary: 'Get a single donation by id',
+        parameters: [{ $ref: '#/components/parameters/Id' }],
+        responses: {
+          200: { description: 'The donation record', content: { 'application/json': { schema: { $ref: '#/components/schemas/Donation' } } } },
+          404: { description: 'Donation not found' },
+        },
+      },
+      put: {
+        tags: ['Donations'],
+        summary: 'Update a donation by id (partial updates allowed)',
+        parameters: [{ $ref: '#/components/parameters/Id' }],
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { $ref: '#/components/schemas/DonationUpdate' } } },
+        },
+        responses: {
+          200: { description: 'Updated donation', content: { 'application/json': { schema: { $ref: '#/components/schemas/Donation' } } } },
+          404: { description: 'Donation not found' },
+        },
+      },
+      patch: {
+        tags: ['Donations'],
+        summary: 'Partially update a donation by id',
+        parameters: [{ $ref: '#/components/parameters/Id' }],
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { $ref: '#/components/schemas/DonationUpdate' } } },
+        },
+        responses: {
+          200: { description: 'Updated donation', content: { 'application/json': { schema: { $ref: '#/components/schemas/Donation' } } } },
+          404: { description: 'Donation not found' },
+        },
+      },
+      delete: {
+        tags: ['Donations'],
+        summary: 'Delete a donation by id',
+        parameters: [{ $ref: '#/components/parameters/Id' }],
+        responses: {
+          200: { description: 'The removed donation record', content: { 'application/json': { schema: { $ref: '#/components/schemas/Donation' } } } },
+          404: { description: 'Donation not found' },
+        },
+      },
+    },
+    '/api/job-postings': {
+      get: {
+        tags: ['Job Postings'],
+        summary: 'List all job postings (with poster usernames when set)',
+        responses: {
+          200: {
+            description: 'Job posting records',
+            content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/JobPosting' } } } },
+          },
+        },
+      },
+      post: {
+        tags: ['Job Postings'],
+        summary: 'Create a job posting',
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { $ref: '#/components/schemas/JobPostingInput' } } },
+        },
+        responses: {
+          201: { description: 'Created job posting', content: { 'application/json': { schema: { $ref: '#/components/schemas/JobPosting' } } } },
+          400: { description: 'Validation error' },
+          404: { description: 'Referenced user (posted_by) does not exist' },
+        },
+      },
+    },
+    '/api/job-postings/{id}': {
+      get: {
+        tags: ['Job Postings'],
+        summary: 'Get a single job posting by id',
+        parameters: [{ $ref: '#/components/parameters/Id' }],
+        responses: {
+          200: { description: 'The job posting record', content: { 'application/json': { schema: { $ref: '#/components/schemas/JobPosting' } } } },
+          404: { description: 'Job posting not found' },
+        },
+      },
+      put: {
+        tags: ['Job Postings'],
+        summary: 'Update a job posting by id (partial updates allowed)',
+        parameters: [{ $ref: '#/components/parameters/Id' }],
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { $ref: '#/components/schemas/JobPostingInput' } } },
+        },
+        responses: {
+          200: { description: 'Updated job posting', content: { 'application/json': { schema: { $ref: '#/components/schemas/JobPosting' } } } },
+          404: { description: 'Job posting not found' },
+        },
+      },
+      patch: {
+        tags: ['Job Postings'],
+        summary: 'Partially update a job posting by id',
+        parameters: [{ $ref: '#/components/parameters/Id' }],
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { $ref: '#/components/schemas/JobPostingInput' } } },
+        },
+        responses: {
+          200: { description: 'Updated job posting', content: { 'application/json': { schema: { $ref: '#/components/schemas/JobPosting' } } } },
+          404: { description: 'Job posting not found' },
+        },
+      },
+      delete: {
+        tags: ['Job Postings'],
+        summary: 'Delete a job posting by id',
+        parameters: [{ $ref: '#/components/parameters/Id' }],
+        responses: {
+          200: { description: 'The removed job posting record', content: { 'application/json': { schema: { $ref: '#/components/schemas/JobPosting' } } } },
+          404: { description: 'Job posting not found' },
+        },
+      },
+    },
+    '/api/users/{userId}/donations': {
+      get: {
+        tags: ['Donations'],
+        summary: 'Nested route: list donations made by one user',
+        parameters: [{ $ref: '#/components/parameters/UserId' }],
+        responses: {
+          200: { description: 'The user\u0027s donations', content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/Donation' } } } } },
+          404: { description: 'User not found' },
+        },
+      },
+    },
+    '/api/users/{userId}/job-postings': {
+      get: {
+        tags: ['Job Postings'],
+        summary: 'Nested route: list job postings published by one user',
+        parameters: [{ $ref: '#/components/parameters/UserId' }],
+        responses: {
+          200: { description: 'The user\u0027s job postings', content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/JobPosting' } } } } },
+          404: { description: 'User not found' },
+        },
+      },
+    },
+    '/api/applications': {
+      get: {
+        tags: ['Job Applications'],
+        summary: 'List all job applications (joined with applicant and posting)',
+        responses: {
+          200: {
+            description: 'Application records',
+            content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/JobApplication' } } } },
+          },
+        },
+      },
+      post: {
+        tags: ['Job Applications'],
+        summary: 'Apply to a job posting (one application per user per posting)',
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { $ref: '#/components/schemas/JobApplicationInput' } } },
+        },
+        responses: {
+          201: { description: 'Created application', content: { 'application/json': { schema: { $ref: '#/components/schemas/JobApplication' } } } },
+          400: { description: 'Validation error' },
+          404: { description: 'Referenced job posting or user does not exist' },
+          409: { description: 'User already applied to this posting' },
+        },
+      },
+    },
+    '/api/applications/{id}': {
+      get: {
+        tags: ['Job Applications'],
+        summary: 'Get a single application by id',
+        parameters: [{ $ref: '#/components/parameters/Id' }],
+        responses: {
+          200: { description: 'The application record', content: { 'application/json': { schema: { $ref: '#/components/schemas/JobApplication' } } } },
+          404: { description: 'Application not found' },
+        },
+      },
+      put: {
+        tags: ['Job Applications'],
+        summary: 'Update an application by id (e.g. status or cover letter)',
+        parameters: [{ $ref: '#/components/parameters/Id' }],
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { $ref: '#/components/schemas/JobApplicationUpdate' } } },
+        },
+        responses: {
+          200: { description: 'Updated application', content: { 'application/json': { schema: { $ref: '#/components/schemas/JobApplication' } } } },
+          404: { description: 'Application not found' },
+        },
+      },
+      patch: {
+        tags: ['Job Applications'],
+        summary: 'Partially update an application by id',
+        parameters: [{ $ref: '#/components/parameters/Id' }],
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { $ref: '#/components/schemas/JobApplicationUpdate' } } },
+        },
+        responses: {
+          200: { description: 'Updated application', content: { 'application/json': { schema: { $ref: '#/components/schemas/JobApplication' } } } },
+          404: { description: 'Application not found' },
+        },
+      },
+      delete: {
+        tags: ['Job Applications'],
+        summary: 'Delete an application by id',
+        parameters: [{ $ref: '#/components/parameters/Id' }],
+        responses: {
+          200: { description: 'The removed application record', content: { 'application/json': { schema: { $ref: '#/components/schemas/JobApplication' } } } },
+          404: { description: 'Application not found' },
+        },
+      },
+    },
+    '/api/users/{userId}/applications': {
+      get: {
+        tags: ['Job Applications'],
+        summary: 'Nested route: applications made by one user',
+        parameters: [{ $ref: '#/components/parameters/UserId' }],
+        responses: {
+          200: { description: 'The user\u0027s applications', content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/JobApplication' } } } } },
+          404: { description: 'User not found' },
+        },
+      },
+    },
+    '/api/job-postings/{id}/applications': {
+      get: {
+        tags: ['Job Applications'],
+        summary: 'Nested route: applications received by one job posting',
+        parameters: [{ $ref: '#/components/parameters/Id' }],
+        responses: {
+          200: { description: 'The posting\u0027s applications', content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/JobApplication' } } } } },
+          404: { description: 'Job posting not found' },
+        },
+      },
+    },
+    '/job-postings': {
+      get: {
+        tags: ['Job Postings (Web)'],
+        summary: 'Web page listing all job postings (HTML)',
+        responses: { 200: { description: 'HTML page with a table of all postings' } },
+      },
+      post: {
+        tags: ['Job Postings (Web)'],
+        summary: 'Create a job posting from an HTML form',
+        requestBody: {
+          required: true,
+          content: { 'application/x-www-form-urlencoded': { schema: { $ref: '#/components/schemas/JobPostingInput' } } },
+        },
+        responses: {
+          302: { description: 'Redirects to /job-postings' },
+          400: { description: 'Invalid input (HTML error page)' },
+          404: { description: 'posted_by user not found (HTML error page)' },
+        },
+      },
+    },
+    '/job-postings/new': {
+      get: {
+        tags: ['Job Postings (Web)'],
+        summary: 'Form page for creating a job posting (HTML)',
+        responses: { 200: { description: 'HTML create form' } },
+      },
+    },
+    '/job-postings/{id}': {
+      get: {
+        tags: ['Job Postings (Web)'],
+        summary: 'Web page for one posting with its applications and an apply form (HTML)',
+        parameters: [{ $ref: '#/components/parameters/Id' }],
+        responses: {
+          200: { description: 'HTML posting detail page' },
+          404: { description: 'Job posting not found (HTML error page)' },
+        },
+      },
+      post: {
+        tags: ['Job Postings (Web)'],
+        summary: 'Update a job posting from an HTML form',
+        parameters: [{ $ref: '#/components/parameters/Id' }],
+        requestBody: {
+          required: true,
+          content: { 'application/x-www-form-urlencoded': { schema: { $ref: '#/components/schemas/JobPostingInput' } } },
+        },
+        responses: {
+          302: { description: 'Redirects to /job-postings/{id}' },
+          400: { description: 'Invalid input (HTML error page)' },
+          404: { description: 'Posting or posted_by user not found (HTML error page)' },
+        },
+      },
+    },
+    '/job-postings/{id}/edit': {
+      get: {
+        tags: ['Job Postings (Web)'],
+        summary: 'Form page for editing a job posting (HTML)',
+        parameters: [{ $ref: '#/components/parameters/Id' }],
+        responses: {
+          200: { description: 'HTML edit form prefilled with the posting' },
+          404: { description: 'Job posting not found (HTML error page)' },
+        },
+      },
+    },
+    '/job-postings/{id}/delete': {
+      post: {
+        tags: ['Job Postings (Web)'],
+        summary: 'Delete a job posting from an HTML form',
+        parameters: [{ $ref: '#/components/parameters/Id' }],
+        responses: {
+          302: { description: 'Redirects to /job-postings' },
+          404: { description: 'Job posting not found (HTML error page)' },
+          409: { description: 'Posting still has applications (HTML error page)' },
+        },
+      },
+    },
+    '/job-postings/{id}/apply': {
+      post: {
+        tags: ['Job Postings (Web)'],
+        summary: 'Apply to a job posting from the HTML form on the details page',
+        parameters: [{ $ref: '#/components/parameters/Id' }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/x-www-form-urlencoded': {
+              schema: {
+                type: 'object',
+                required: ['user_id'],
+                properties: {
+                  user_id: { type: 'integer', description: 'Applicant user id' },
+                  cover_letter: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          302: { description: 'Redirects to /job-postings/{id}' },
+          400: { description: 'Invalid input (HTML error page)' },
+          404: { description: 'Posting or user not found (HTML error page)' },
+          409: { description: 'User already applied (HTML error page)' },
+        },
+      },
+    },
     '/users': {
       get: {
         tags: ['Users (Web)'],
@@ -553,6 +918,96 @@ module.exports = {
         properties: {
           username: { type: 'string', example: 'senol' },
           email: { type: 'string', format: 'email', example: 'senol@example.com' },
+        },
+      },
+      Donation: {
+        type: 'object',
+        properties: {
+          id: { type: 'integer' },
+          userId: { type: 'integer' },
+          donorUsername: { type: 'string', description: 'Joined from users' },
+          amount: { type: 'number', example: 250 },
+          currency: { type: 'string', example: 'TRY' },
+          campaign: { type: 'string', nullable: true, example: 'Scholarship Fund' },
+          status: { type: 'string', enum: ['pending', 'completed', 'failed'] },
+          donatedAt: { type: 'string', format: 'date-time' },
+        },
+      },
+      DonationInput: {
+        type: 'object',
+        required: ['user_id', 'amount'],
+        properties: {
+          user_id: { type: 'integer', description: 'Donor user id' },
+          amount: { type: 'number', example: 250 },
+          currency: { type: 'string', example: 'TRY' },
+          campaign: { type: 'string', nullable: true, example: 'Scholarship Fund' },
+          status: { type: 'string', enum: ['pending', 'completed', 'failed'] },
+        },
+      },
+      DonationUpdate: {
+        type: 'object',
+        properties: {
+          amount: { type: 'number', example: 250 },
+          currency: { type: 'string', example: 'TRY' },
+          campaign: { type: 'string', nullable: true },
+          status: { type: 'string', enum: ['pending', 'completed', 'failed'] },
+        },
+      },
+      JobPosting: {
+        type: 'object',
+        properties: {
+          id: { type: 'integer' },
+          postedBy: { type: 'integer', nullable: true },
+          postedByUsername: { type: 'string', nullable: true, description: 'Joined from users' },
+          title: { type: 'string', example: 'Data Analyst' },
+          company: { type: 'string', example: 'Acme' },
+          description: { type: 'string', nullable: true },
+          location: { type: 'string', nullable: true, example: 'Istanbul' },
+          status: { type: 'string', enum: ['open', 'closed'] },
+          createdAt: { type: 'string', format: 'date-time' },
+        },
+      },
+      JobPostingInput: {
+        type: 'object',
+        required: ['title', 'company'],
+        properties: {
+          posted_by: { type: 'integer', nullable: true, description: 'Posting user id (optional)' },
+          title: { type: 'string', example: 'Data Analyst' },
+          company: { type: 'string', example: 'Acme' },
+          description: { type: 'string', nullable: true },
+          location: { type: 'string', nullable: true, example: 'Istanbul' },
+          status: { type: 'string', enum: ['open', 'closed'] },
+        },
+      },
+      JobApplication: {
+        type: 'object',
+        properties: {
+          id: { type: 'integer' },
+          jobPostingId: { type: 'integer' },
+          jobTitle: { type: 'string', description: 'Joined from job_postings' },
+          jobCompany: { type: 'string', description: 'Joined from job_postings' },
+          userId: { type: 'integer' },
+          applicantUsername: { type: 'string', description: 'Joined from users' },
+          status: { type: 'string', enum: ['pending', 'reviewed', 'accepted', 'rejected'] },
+          coverLetter: { type: 'string', nullable: true },
+          createdAt: { type: 'string', format: 'date-time' },
+        },
+      },
+      JobApplicationInput: {
+        type: 'object',
+        required: ['job_posting_id', 'user_id'],
+        properties: {
+          job_posting_id: { type: 'integer' },
+          user_id: { type: 'integer' },
+          cover_letter: { type: 'string', nullable: true },
+          status: { type: 'string', enum: ['pending', 'reviewed', 'accepted', 'rejected'] },
+        },
+      },
+      JobApplicationUpdate: {
+        type: 'object',
+        properties: {
+          status: { type: 'string', enum: ['pending', 'reviewed', 'accepted', 'rejected'] },
+          cover_letter: { type: 'string', nullable: true },
         },
       },
       Announcement: {
