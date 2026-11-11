@@ -92,7 +92,18 @@ async function remove(req, res) {
   const id = idParamOr400(req, res);
   if (id === null) return;
 
-  const removed = await UserModel.remove(id);
+  let removed;
+  try {
+    removed = await UserModel.remove(id);
+  } catch (err) {
+    if (err.code === 'ER_ROW_IS_REFERENCED_2') {
+      return res.status(409).json({
+        error: `User with id ${id} still has donations or job applications and cannot be deleted.`,
+      });
+    }
+    throw err;
+  }
+
   if (!removed) {
     return res.status(404).json({ error: `User with id ${id} not found.` });
   }

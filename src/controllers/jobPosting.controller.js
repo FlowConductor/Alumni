@@ -5,6 +5,8 @@
 const JobPostingModel = require('../models/jobPosting.model');
 const ApplicationModel = require('../models/application.model');
 
+const TITLE_MAX_LENGTH = 120;
+
 // READ (all) — view: src/views/jobPostings/index.ejs
 async function list(req, res) {
   res.render('jobPostings/index', { postings: await JobPostingModel.findAll() });
@@ -44,6 +46,12 @@ async function create(req, res) {
     return res.status(400).render('error', {
       title: 'Invalid input',
       message: 'Both title and company are required.',
+    });
+  }
+  if (title.length > TITLE_MAX_LENGTH) {
+    return res.status(400).render('error', {
+      title: 'Invalid input',
+      message: `Title must be at most ${TITLE_MAX_LENGTH} characters.`,
     });
   }
   if (postedBy !== null && (!Number.isInteger(postedBy) || postedBy < 1)) {
@@ -97,6 +105,12 @@ async function update(req, res) {
     return res.status(400).render('error', {
       title: 'Invalid input',
       message: 'A valid id, title, and company are required.',
+    });
+  }
+  if (title.length > TITLE_MAX_LENGTH) {
+    return res.status(400).render('error', {
+      title: 'Invalid input',
+      message: `Title must be at most ${TITLE_MAX_LENGTH} characters.`,
     });
   }
 

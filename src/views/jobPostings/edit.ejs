@@ -9,7 +9,7 @@
   <form method="POST" action="/job-postings/<%= posting.id %>">
     <p>
       <label for="title">Title:</label><br>
-      <input type="text" id="title" name="title" value="<%= posting.title %>" required>
+      <input type="text" id="title" name="title" maxlength="120" value="<%= posting.title %>" required>
     </p>
     <p>
       <label for="company">Company:</label><br>

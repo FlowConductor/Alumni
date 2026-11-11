@@ -1,6 +1,6 @@
 # DDD — MIS Alumni Portal (Basic Domain Design)
 
-Status: implemented. The `users`, `donate`, `announcements`, `job_postings`, and `job_applications` tables exist in MySQL (migrations 001–005 in `src/db/migrations/`). All five models are backed by their tables; Donation, Job Posting, and Job Application endpoints are implemented (JSON API, direct and nested routes).
+Status: implemented. The `users`, `donate`, `announcements`, `job_postings`, and `job_applications` tables exist in MySQL (migrations 001–006 in `src/db/migrations/`). All five models are backed by their tables; Donation, Job Posting, and Job Application endpoints are implemented (JSON API, direct and nested routes). Validation rules are listed in section 7.
 
 ## 1. Ubiquitous Language
 
@@ -40,8 +40,8 @@ Status: implemented. The `users`, `donate`, `announcements`, `job_postings`, and
 ### Job Posting (entity, Career Services context)
 
 - Identity: `id`.
-- Attributes: `posted_by` (optional, the User who posted it), `title`, `company`, `description` (optional), `location` (optional), `status`, `created_at`.
-- Invariants: `title` and `company` are required; new postings start as `open`.
+- Attributes: `posted_by` (optional, the User who posted it), `title`, `company`, `description` (optional), `location` (optional, the city), `status`, `created_at`.
+- Invariants: `title` is required and at most 120 characters; `company` is required; `location` (city) and `description` are optional; new postings start as `open`. See section 7 for the full rule set.
 - `posted_by` may be null: partner companies can post without a portal account. A User can post many Job Postings.
 - Current reference implementation: `src/models/jobPosting.model.js` (LEFT JOIN on `users` for the poster, `findByUser` accessor).
 
@@ -107,10 +107,10 @@ CREATE TABLE donate (
 |--------|------|-------------|
 | id | BIGINT UNSIGNED | PK, AUTO_INCREMENT |
 | posted_by | BIGINT UNSIGNED | NULL, FK → users.id (ON DELETE SET NULL) |
-| title | VARCHAR(255) | NOT NULL |
+| title | VARCHAR(120) | NOT NULL (required, max 120 characters) |
 | company | VARCHAR(255) | NOT NULL |
 | description | TEXT | NULL |
-| location | VARCHAR(255) | NULL |
+| location | VARCHAR(255) | NULL (the city; optional) |
 | status | ENUM('open','closed') | NOT NULL, DEFAULT 'open' |
 | created_at | TIMESTAMP | NOT NULL, DEFAULT CURRENT_TIMESTAMP |
 
@@ -118,7 +118,7 @@ CREATE TABLE donate (
 CREATE TABLE job_postings (
   id          BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   posted_by   BIGINT UNSIGNED NULL,
-  title       VARCHAR(255)  NOT NULL,
+  title       VARCHAR(120)  NOT NULL,
   company     VARCHAR(255)  NOT NULL,
   description TEXT          NULL,
   location    VARCHAR(255)  NULL,
@@ -127,6 +127,8 @@ CREATE TABLE job_postings (
   CONSTRAINT fk_job_postings_user FOREIGN KEY (posted_by) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 ```
+
+Migration `006_alter_job_postings_title_length.sql` narrows `title` from `VARCHAR(255)` to `VARCHAR(120)` so the column matches the validation rule.
 
 ### job_applications table
 
@@ -186,3 +188,26 @@ users (1) ────< job_applications (N) >──── (1) job_postings
 - A separate `campaigns` table once the Fundraising module is implemented.
 - Donation receipt/payment integration (status flow: pending → completed/failed).
 - Application status flow (pending → reviewed → accepted/rejected) and notifications.
+
+## 7. Validation Rules
+
+Rules are enforced in the controllers before the model is called, so an invalid request never reaches the database. The JSON API answers `400` with `{"error": "..."}`; the web UI re-renders the error page with the same message.
+
+### Job Posting
+
+| Field | Required | Rule | Violation |
+|-------|----------|------|-----------|
+| `title` | Yes | Non-empty string, at most **120 characters** | `400` — `Field "title" is required.` / `Field "title" must be at most 120 characters.` |
+| `company` | Yes | Non-empty string | `400` — `Field "company" is required.` |
+| `location` (city) | No | Free text; may be omitted or `null` | — |
+| `description` | No | Free text; may be omitted or `null` | — |
+| `posted_by` | No | Positive integer referencing an existing user | `400` if not a positive integer, `404` if the user does not exist |
+| `status` | No | `open` or `closed`; defaults to `open` | `400` — `Field "status" must be one of: open, closed.` |
+
+Enforced in `src/controllers/apiJobPosting.controller.js` (JSON API), `src/controllers/jobPosting.controller.js` (web), `src/views/jobPostings/create.ejs` and `edit.ejs` (`maxlength="120"`), `src/docs/openapi.js` (`maxLength: 120`), and the `job_postings.title` column (`VARCHAR(120)`, migration 006).
+
+### User and Job Application (summary)
+
+- **User** — `username` required and unique; `email` required, a valid address, and unique. Violations: `400` (missing/malformed) or `409` (duplicate).
+- **Job Application** — `job_posting_id` and `user_id` required and must reference existing rows; one application per user per posting. Violations: `400` (missing/invalid), `404` (unknown posting or user), `409` (duplicate application).
+- **Deletion** — a User with donations or applications, and a Job Posting with applications, cannot be deleted: the foreign keys restrict it and the controllers answer `409`.

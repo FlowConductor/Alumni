@@ -118,7 +118,19 @@ async function remove(req, res) {
     });
   }
 
-  const removed = await UserModel.remove(id);
+  let removed;
+  try {
+    removed = await UserModel.remove(id);
+  } catch (err) {
+    if (err.code === 'ER_ROW_IS_REFERENCED_2') {
+      return res.status(409).render('error', {
+        title: 'Cannot delete',
+        message: 'This user still has donations or job applications; delete them first.',
+      });
+    }
+    throw err;
+  }
+
   if (!removed) {
     return res.status(404).render('error', {
       title: 'User not found',

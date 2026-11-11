@@ -15,6 +15,9 @@ const apiJobPostingResourcesRoutes = require('./src/routes/apiJobPostingResource
 const apiApplicationsRoutes = require('./src/routes/apiApplications');
 const jobPostingsRoutes = require('./src/routes/jobPostings');
 const openapiSpec = require('./src/docs/openapi');
+const requestLogger = require('./src/middleware/logger');
+const notFoundHandler = require('./src/middleware/notFound');
+const errorHandler = require('./src/middleware/errorHandler');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -22,6 +25,7 @@ const PORT = process.env.PORT || 3000;
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'src', 'views'));
 
+app.use(requestLogger);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/', generalRoutes);
@@ -37,6 +41,10 @@ app.use('/api/job-postings', apiJobPostingResourcesRoutes);
 app.use('/api/applications', apiApplicationsRoutes);
 app.use('/job-postings', jobPostingsRoutes);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(openapiSpec));
+
+// 404 Guardian: nothing matched above. 5xx Guardian: terminal error handler.
+app.use(notFoundHandler);
+app.use(errorHandler);
 
 app.listen(PORT, () => {
   console.log(`MIS Alumni Portal server running at http://localhost:${PORT}`);

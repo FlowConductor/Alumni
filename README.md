@@ -17,10 +17,14 @@ A centralized alumni tracking system and community portal for graduates of the I
 - [Project Structure (MVC)](#project-structure-mvc)
 - [Getting Started](#getting-started)
 - [Current Routes](#current-routes)
+- [Validation Rules](#validation-rules)
+- [Middleware & Error Handling](#middleware--error-handling)
+- [Testing Invalid Requests (Postman)](#testing-invalid-requests-postman)
 - [Roadmap](#roadmap)
 - [Development Process: Detailed Prompts Used](#development-process-detailed-prompts-used)
 - [Contributing](#contributing)
 - [License](#license)
+- [Changelog](#changelog)
 
 ## About the Project
 
@@ -128,13 +132,26 @@ The application follows the MVC (Model–View–Controller) pattern, adapted for
 
 ```
 MIS/
-├── server.js               Entry point: Express app, JSON middleware,
-│                           mounts controllers and Swagger UI, starts listening
-├── package.json            Dependencies and npm scripts (start, dev)
+├── server.js               Entry point: Express app, request logger, JSON middleware,
+│                           mounts controllers and Swagger UI, 404 + 5xx guardians
+├── package.json            Dependencies and npm scripts (start, dev, migrate, seed)
 ├── README.md               This document
-├── .gitignore              Ignores node_modules/, .env, data/
+├── ddd.md                  Domain design: entities, invariants, tables, relationships
+├── Dockerfile              App image (node:20-alpine)
+├── docker-compose.yml      app + migrate + seed + mysql services
+├── .env.example            Environment variable template
+├── .gitignore              Ignores node_modules/, .env, data/, logs/
 ├── data/                   Legacy JSON data from the pre-MySQL phase (gitignored, unused)
+├── logs/                   Runtime logs (gitignored, created on first error)
+│   └── error.logs          One entry per error handled by the 5xx Guardian
+├── postman/                Postman collection for manual and automated API checks
+│   └── MIS-Alumni-Portal.postman_collection.json   Invalid-request suite (19 requests)
 └── src/
+    ├── middleware/         Cross-cutting request handling
+    │   ├── logger.js       Request logger: prints "10:20:30 POST /api/users 201 18ms"
+    │   ├── notFound.js     404 Guardian: unmatched routes -> JSON or the 404 page
+    │   ├── errorHandler.js 5xx Guardian: terminal error handler, JSON or error page
+    │   └── errorLog.js     Appends error entries to logs/error.logs
     ├── controllers/        Controllers
     │   ├── user.controller.js      User controller: web CRUD (HTML pages + forms) for /users
     │   ├── apiUser.controller.js   ApiUser controller: JSON CRUD for /api/users
@@ -164,7 +181,8 @@ MIS/
     │   ├── jobPosting.model.js  Job Posting model: CRUD on job_postings, optionally joined to users (poster relationship)
     │   └── application.model.js Application model: CRUD on job_applications, joined to users and job_postings
     ├── views/             View layer (EJS templates)
-    │   ├── error.ejs              Error page (400/404)
+    │   ├── error.ejs              Error page (400/404/409/500)
+    │   ├── 404.ejs                Generic 404 page rendered by the 404 Guardian
     │   └── users/
     │       ├── index.ejs          User list page (GET /users)
     │       ├── create.ejs         Create form page (GET /users/new)
@@ -180,6 +198,12 @@ MIS/
     │       ├── create.ejs         Create form page (GET /job-postings/new)
     │       ├── details.ejs        Posting detail page with applications + apply form (GET /job-postings/:id)
     │       └── edit.ejs           Edit form page (GET /job-postings/:id/edit)
+    ├── db/                 Data layer tooling
+    │   ├── database.js     Shared mysql2 connection pool (reads .env)
+    │   ├── migrate.js      Migration runner (tracks applied files in `migrations`)
+    │   ├── seed.js         Seeder: 20 users, 40 donations, 15 postings, 20 applications
+    │   ├── migrations/     Hand-written SQL migrations 001-006
+    │   └── factories/      Record factories used by the seeder
     └── docs/               API documentation
         └── openapi.js      OpenAPI 3.0 spec served by Swagger UI at /api-docs
 ```
@@ -193,19 +217,22 @@ MIS/
 | View | `src/views/*.ejs` (web) and JSON responses (API) | EJS templates: `users/index.ejs` (list), `users/create.ejs` (create form), `users/details.ejs` (detail), `users/edit.ejs` (edit form), `error.ejs` (error pages); the ApiUser controller's JSON output is the API's view |
 | Controller | `src/controllers/user.controller.js` (web) and `src/controllers/apiUser.controller.js` (API) | Full CRUD functions: validate input, call the model, produce the response — HTML pages and redirects for the web, JSON + status codes for the API |
 | Routes | `src/routes/*.js` | Map URLs and HTTP methods to controller functions: `apiUsers.js` → ApiUser controller (`/api/users`), `users.js` → User controller (`/users`), `alumni.js` and `general.js` → inline handlers |
-| Wiring | `server.js` | Creates the Express app, mounts the route files (which map to controllers) at their base paths, serves Swagger UI |
+| Middleware | `src/middleware/*.js` | Cross-cutting concerns outside MVC: request logging (`logger.js`), unmatched-route handling (`notFound.js`), terminal error handling and error logging (`errorHandler.js`, `errorLog.js`) |
+| Wiring | `server.js` | Creates the Express app, mounts the request logger, the route files (which map to controllers) at their base paths, serves Swagger UI, and closes the chain with the 404 and 5xx guardians |
 
 ### Request flow
 
 ```
 Client request
-   → server.js (express.json, route mounting)
+   → server.js (request logger, express.json, route mounting)
    → Controller (src/routes/) — validates input, e.g. username/email
    → Model (src/models/) — query the MySQL database
    ← Controller responds with the view: JSON record + status code
+   → 404 Guardian (no route matched) or 5xx Guardian (an error was thrown)
+   → Logger prints one line per request to the terminal
 ```
 
-A POST to `/api/users`, for example: `server.js` parses the JSON body, the controller in `src/routes/users.js` validates `username` and `email`, the model in `src/models/user.model.js` inserts the record into the MySQL `users` table and returns it, and the controller sends back `201` with the created user.
+A POST to `/api/users`, for example: `server.js` parses the JSON body, the controller in `src/routes/users.js` validates `username` and `email`, the model in `src/models/user.model.js` inserts the record into the MySQL `users` table and returns it, and the controller sends back `201` with the created user. The logger then prints `10:20:30 POST /api/users 201 18ms`.
 
 ## Getting Started
 
@@ -348,6 +375,127 @@ The backend's development server (Express) exposes the following starter routes 
 
 Run the server with `npm start`. Interactive API documentation for all endpoints is available via Swagger UI at [http://localhost:3000/api-docs](http://localhost:3000/api-docs); the OpenAPI spec itself lives in `src/docs/openapi.js`. The `/alumni` endpoints are the first endpoints of the Alumni Directory & Profile Management module; the remaining routes are temporary and used to verify the server is running. They will be extended and reorganized as the modules described in [Key Features](#key-features) are implemented.
 
+Any request that matches none of the routes above is answered by the [404 Guardian](#2-404-guardian-notfoundjs) with a `404` and a reason.
+
+## Validation Rules
+
+Input is validated in the controllers before it reaches the model, so an invalid request never touches the database. The JSON API answers `400` with `{"error": "..."}`; the web UI re-renders the error page with the same message.
+
+### Job Posting
+
+| Field | Required | Rule | On violation |
+|-------|----------|------|--------------|
+| `title` | Yes | Non-empty string, at most **120 characters** | `400` — `Field "title" is required.` or `Field "title" must be at most 120 characters.` |
+| `company` | Yes | Non-empty string | `400` — `Field "company" is required.` |
+| `location` (city) | No | Free text; may be omitted or `null` | — |
+| `description` | No | Free text; may be omitted or `null` | — |
+| `posted_by` | No | Positive integer referencing an existing user | `400` if not a positive integer, `404` if the user does not exist |
+| `status` | No | One of `open`, `closed` (defaults to `open`) | `400` — `Field "status" must be one of: open, closed.` |
+
+The 120-character limit is enforced in three places: the API controller (`apiJobPosting.controller.js`), the web controller (`jobPosting.controller.js`), and the `job_postings.title` column (`VARCHAR(120)`, migration `006_alter_job_postings_title_length.sql`). The HTML forms also carry `maxlength="120"`.
+
+### User
+
+| Field | Required | Rule | On violation |
+|-------|----------|------|--------------|
+| `username` | Yes | Non-empty string, unique | `400` if missing, `409` if taken |
+| `email` | Yes | Valid address, unique | `400` if missing or malformed, `409` if taken |
+
+### Job Application
+
+| Field | Required | Rule | On violation |
+|-------|----------|------|--------------|
+| `job_posting_id` | Yes | Positive integer referencing an existing posting | `400` if invalid, `404` if the posting does not exist |
+| `user_id` | Yes | Positive integer referencing an existing user | `400` if invalid, `404` if the user does not exist |
+| `cover_letter` | No | Free text | — |
+| (posting, user) | — | One application per user per posting | `409` — `This user has already applied to this job posting.` |
+
+## Middleware & Error Handling
+
+Three middlewares wrap every request. They live in `src/middleware/` and are mounted in `server.js`: the logger first, then the routes, then the two guardians.
+
+### 1. Request logger (`logger.js`)
+
+Prints one line per request to the terminal once the response has finished:
+
+```
+10:20:30 POST /api/users 201 18ms
+```
+
+The line is `time method route status duration`. The duration is measured with `process.hrtime.bigint()` from the moment the request enters the app until the response is finished, so it includes controller and database time.
+
+### 2. 404 Guardian (`notFound.js`)
+
+Mounted after every route, so any request that reaches it matched nothing. It answers `404` with an explicit reason instead of Express's default page:
+
+- JSON clients (any path under `/api`, or an explicit `Accept: application/json`):
+
+  ```json
+  {
+    "error": "Not Found",
+    "reason": "No route matches GET /api/does-not-exist.",
+    "method": "GET",
+    "path": "/api/does-not-exist"
+  }
+  ```
+
+- Browsers: the generic page `src/views/404.ejs`, rendered with status `404`. The request is answered by the 404 page rather than redirected, so the status code stays truthful and no redirect loop is possible.
+
+### 3. 5xx Guardian (`errorHandler.js`)
+
+The terminal Express error handler. Express 5 forwards rejected promises from async controllers automatically, so a failing query lands here. It:
+
+- writes the error to `logs/error.logs` through `errorLog.js` — one entry per error with timestamp, status, method, route, duration, message and stack;
+- answers with the error's status (`500` by default) as JSON for API clients and as the error page for browsers;
+- includes the stack only outside production, and hides internal messages (raw SQL errors) when `NODE_ENV=production`;
+- also handles malformed JSON bodies (`400` — `Request body is not valid JSON.`).
+
+Example entry in `logs/error.logs`:
+
+```
+2026-11-11T12:02:18.512Z 500 GET /api/users 18946ms read ECONNRESET
+Error: read ECONNRESET
+    at Object.findAll (.../src/models/user.model.js:20:27)
+```
+
+`logs/` is gitignored and created on the first error, so a fresh clone needs no setup.
+
+## Testing Invalid Requests (Postman)
+
+`postman/MIS-Alumni-Portal.postman_collection.json` contains 19 invalid requests in four folders — Users, Job postings, Applications, Guardians. Every request asserts its expected status, so the collection doubles as a regression suite:
+
+```bash
+npx newman run postman/MIS-Alumni-Portal.postman_collection.json --env-var baseUrl=http://localhost:3000
+```
+
+In the Postman desktop app: **Import** the collection file, set the `baseUrl` variable, then **Run collection**.
+
+Verified results (19 requests, 19 assertions, 0 failures):
+
+| Request | Status | Response |
+|---------|--------|----------|
+| `POST /api/users` with `{}` | 400 | `Field "username" is required.` |
+| `POST /api/users` with `email: "not-an-email"` | 400 | `Field "email" must be a valid email address.` |
+| `POST /api/users` with a duplicate username | 409 | `A user with that username or email already exists.` |
+| `POST /api/users` with malformed JSON | 400 | `Request body is not valid JSON.` |
+| `GET /api/users/abc` | 400 | `Route parameter "id" must be a positive integer.` |
+| `GET /api/users/999999` | 404 | `User with id 999999 not found.` |
+| `PUT /api/users/999999` | 404 | `User with id 999999 not found.` |
+| `DELETE /api/users/999999` | 404 | `User with id 999999 not found.` |
+| `DELETE /api/users/1` (has donations) | 409 | `User with id 1 still has donations or job applications and cannot be deleted.` |
+| `POST /api/job-postings` without `title` | 400 | `Field "title" is required.` |
+| `POST /api/job-postings` with a 121-character `title` | 400 | `Field "title" must be at most 120 characters.` |
+| `POST /api/job-postings` without `company` | 400 | `Field "company" is required.` |
+| `POST /api/job-postings` with `posted_by: 999999` | 404 | `User with id 999999 not found.` |
+| `POST /api/job-postings` with `status: "archived"` | 400 | `Field "status" must be one of: open, closed.` |
+| `GET /api/job-postings/abc` | 400 | `Route parameter "id" must be a positive integer.` |
+| `POST /api/applications` duplicate | 409 | `This user has already applied to this job posting.` |
+| `POST /api/applications` without `user_id` | 400 | `Field "user_id" must be a positive integer.` |
+| `GET /api/does-not-exist` | 404 | 404 Guardian, JSON with a reason |
+| `GET /no-such-page` | 404 | 404 Guardian, generic `404.ejs` page |
+
+A `title` of exactly 120 characters is accepted (`201`), so the boundary is inclusive.
+
 ## Roadmap
 
 Scoping, documentation, and the first starter routes are complete; module implementation is pending.
@@ -423,6 +571,17 @@ Contributions are welcome. Since the project has no code yet, the most valuable 
 
 **TBD** — the license for this project has not been chosen yet. Until a license is decided and a `LICENSE` file is added, all rights are reserved.
 
+## Changelog
+
+### 2026-11-11 — Validation rules, request logging, and error guardians
+
+- **Job Posting validation rules** documented and enforced: `title` required and at most 120 characters, `company` required, `location` (city) and `description` optional. Enforced in the API controller, the web controller, the HTML forms (`maxlength="120"`), the OpenAPI schema (`maxLength: 120`) and the database (`VARCHAR(120)`, migration `006_alter_job_postings_title_length.sql`).
+- **Request logger middleware** (`src/middleware/logger.js`) printing `time method route status duration` to the terminal for every request.
+- **404 Guardian** (`src/middleware/notFound.js`) answering unmatched routes with a `404` and a reason — JSON for API clients, the new generic `src/views/404.ejs` page for browsers.
+- **5xx Guardian** (`src/middleware/errorHandler.js`) as the terminal error handler, writing every error to `logs/error.logs` and answering with JSON or the error page.
+- **Fixed:** deleting a user that still had donations or applications returned `500` with a raw SQL message; it now returns `409` with a readable reason (both API and web).
+- **Postman invalid-request collection** (`postman/MIS-Alumni-Portal.postman_collection.json`, 19 requests) added and verified with newman: 19 requests, 19 assertions, 0 failures.
+- `logs/` added to `.gitignore`.
 
 ## update rule
 

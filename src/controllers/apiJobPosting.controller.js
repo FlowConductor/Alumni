@@ -5,6 +5,17 @@ const JobPostingModel = require('../models/jobPosting.model');
 const UserModel = require('../models/user.model');
 
 const STATUSES = ['open', 'closed'];
+const TITLE_MAX_LENGTH = 120;
+
+function titleError(title) {
+  if (typeof title !== 'string' || !title.trim()) {
+    return 'Field "title" is required.';
+  }
+  if (title.trim().length > TITLE_MAX_LENGTH) {
+    return `Field "title" must be at most ${TITLE_MAX_LENGTH} characters.`;
+  }
+  return null;
+}
 
 function idParamOr400(req, res, name = 'id') {
   const id = Number(req.params[name]);
@@ -50,8 +61,9 @@ async function getByUser(req, res) {
 async function create(req, res) {
   const { posted_by, title, company, description, location, status } = req.body || {};
 
-  if (!title || typeof title !== 'string' || !title.trim()) {
-    return res.status(400).json({ error: 'Field "title" is required.' });
+  const titleProblem = titleError(title);
+  if (titleProblem) {
+    return res.status(400).json({ error: titleProblem });
   }
   if (!company || typeof company !== 'string' || !company.trim()) {
     return res.status(400).json({ error: 'Field "company" is required.' });
@@ -93,8 +105,11 @@ async function update(req, res) {
   if (posted_by !== undefined && (!Number.isInteger(posted_by) || posted_by < 1)) {
     return res.status(400).json({ error: 'Field "posted_by" must be a positive integer.' });
   }
-  if (title !== undefined && (typeof title !== 'string' || !title.trim())) {
-    return res.status(400).json({ error: 'Field "title" must be a non-empty string.' });
+  if (title !== undefined) {
+    const titleProblem = titleError(title);
+    if (titleProblem) {
+      return res.status(400).json({ error: titleProblem });
+    }
   }
   if (company !== undefined && (typeof company !== 'string' || !company.trim())) {
     return res.status(400).json({ error: 'Field "company" must be a non-empty string.' });
