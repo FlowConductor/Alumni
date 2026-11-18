@@ -2,6 +2,8 @@
 
 A centralized alumni tracking system and community portal for graduates of the Istanbul University, Faculty of Economics, Department of Management Information Systems (MIS).
 
+Companion documents: [brand.md](brand.md) (brand guidelines) · [DESIGN.md](DESIGN.md) (design system) · [ddd.md](ddd.md) (domain design).
+
 ## Table of Contents
 
 - [About the Project](#about-the-project)
@@ -21,6 +23,8 @@ A centralized alumni tracking system and community portal for graduates of the I
 - [Middleware & Error Handling](#middleware--error-handling)
 - [Testing Invalid Requests (Postman)](#testing-invalid-requests-postman)
 - [Brand](#brand)
+  - [Brand Guidelines (brand.md)](brand.md)
+  - [Design System (DESIGN.md)](DESIGN.md)
 - [Roadmap](#roadmap)
 - [Development Process: Detailed Prompts Used](#development-process-detailed-prompts-used)
 - [Contributing](#contributing)
