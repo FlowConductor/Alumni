@@ -20,6 +20,7 @@ A centralized alumni tracking system and community portal for graduates of the I
 - [Validation Rules](#validation-rules)
 - [Middleware & Error Handling](#middleware--error-handling)
 - [Testing Invalid Requests (Postman)](#testing-invalid-requests-postman)
+- [Brand](#brand)
 - [Roadmap](#roadmap)
 - [Development Process: Detailed Prompts Used](#development-process-detailed-prompts-used)
 - [Contributing](#contributing)
@@ -136,6 +137,8 @@ MIS/
 │                           mounts controllers and Swagger UI, 404 + 5xx guardians
 ├── package.json            Dependencies and npm scripts (start, dev, migrate, seed)
 ├── README.md               This document
+├── brand.md                Brand guidelines: name, tagline, voice, visual identity
+├── DESIGN.md               Design system: tokens, components, responsive rules
 ├── ddd.md                  Domain design: entities, invariants, tables, relationships
 ├── Dockerfile              App image (node:20-alpine)
 ├── docker-compose.yml      app + migrate + seed + mysql services
@@ -495,6 +498,12 @@ Verified results (19 requests, 19 assertions, 0 failures):
 | `GET /no-such-page` | 404 | 404 Guardian, generic `404.ejs` page |
 
 A `title` of exactly 120 characters is accepted (`201`), so the boundary is inclusive.
+
+## Brand
+
+The product name, tagline, voice, terminology, and visual identity are documented in [brand.md](brand.md). The design system itself — colour, typography, radius and spacing tokens, component rules, responsive behaviour — lives in [DESIGN.md](DESIGN.md), written in the [DESIGN.md format](https://github.com/VoltAgent/awesome-design-md) that design-aware agents read to generate consistent UI. Neither is applied yet: the current templates are unstyled HTML, so the tokens are the target, not the current state.
+
+In short: the name is always **MIS Alumni Portal**, the tagline is *Where MIS graduates stay connected.*, the voice is plain and warm, and no emoji appears anywhere in the product or its documentation.
 
 ## Roadmap
 
