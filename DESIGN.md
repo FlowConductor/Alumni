@@ -9,7 +9,7 @@ description: >-
   tables, plain forms, one primary action per screen, hairline borders instead of shadows, and no
   decorative imagery beyond real graduate portraits and event photographs. Typography is a system
   sans-serif stack at 400/600 weights with tabular figures for money and counts. The system is
-  defined here before it is implemented; the current EJS templates are unstyled HTML.
+  implemented in public/css/app.css, the single stylesheet that carries these values in code.
 
 colors:
   primary: "#12355B"
@@ -279,7 +279,7 @@ Contrast: Ink on White is 16.6:1, Ink Mute on White is 6.0:1, On Primary on Depa
 ### Font Family
 - **UI and body:** the system stack — `-apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif`. No webfont is loaded, so pages render instantly on slow campus networks and nothing is licensed.
 - **Code and ids:** `ui-monospace, SFMono-Regular, Menlo, Consolas, monospace`, used for record ids in tables and for the API examples in the documentation.
-- A licensed humanist sans-serif is **TBD**; if one is chosen it replaces the system stack in this file and in the single stylesheet, nowhere else.
+- A licensed humanist sans-serif is **TBD**; if one is chosen it replaces the system stack in this file and in `public/css/app.css`, nowhere else.
 
 ### Hierarchy
 - **Display Large** (`{typography.display-lg}` — 32px/600): page titles, one per screen (`All users`, `Job postings`).
@@ -422,7 +422,7 @@ Portraits use `srcset` at 96px, 160px, and 320px with a square crop; the 96px va
 ## Iteration Guide
 
 1. Change one component at a time and reference tokens by name (`{colors.primary}`, `{button-primary}`, `{rounded.sm}`) — never a raw hex value in a template.
-2. When a token changes here, change it in the single stylesheet that implements it, and update [brand.md](brand.md) if the intent changed too.
+2. When a token changes here, change it in `public/css/app.css` (the single stylesheet that implements it), and update [brand.md](brand.md) if the intent changed too.
 3. Keep the palette closed: navy, gold, neutrals, and the three semantic pairs. A new colour needs a documented reason.
 4. New screens start from an existing pattern — list page, detail page, or form — before inventing a layout.
 5. Every new component gets an entry in the frontmatter `components` map and a paragraph under Components.

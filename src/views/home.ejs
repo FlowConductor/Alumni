@@ -1,0 +1,73 @@
+<%- include('partials/head', { title: null }) %>
+<%- include('partials/nav', { active: 'home' }) %>
+
+<section class="hero">
+  <p class="hero__tagline">Where MIS graduates stay connected.</p>
+  <h1>MIS Alumni Portal</h1>
+  <p class="hero__lead">
+    The alumni tracking system and community portal for graduates of the Istanbul University,
+    Faculty of Economics, Department of Management Information Systems. One place for the
+    department's graduate records, announcements, and career opportunities.
+  </p>
+  <div class="hero__actions">
+    <a class="btn btn--primary" href="/users">Browse alumni</a>
+    <a class="btn btn--secondary" href="/api-docs">API documentation</a>
+  </div>
+</section>
+
+<h2 class="section-title">What is in the portal today</h2>
+
+<div class="card-grid">
+  <article class="card">
+    <h3 class="card__title">Alumni directory</h3>
+    <p class="card__meta">The core tracking system</p>
+    <p class="card__body">
+      Every graduate on record, with their username and email. This is the data the department
+      maintains for accreditation and for keeping in touch.
+    </p>
+    <div class="card__footer">
+      <a class="btn btn--secondary btn--small" href="/users">Open directory</a>
+    </div>
+  </article>
+
+  <article class="card">
+    <h3 class="card__title">Announcements</h3>
+    <p class="card__meta">Community and communication</p>
+    <p class="card__body">
+      Notices published to the alumni community: reunions, deadlines, department news, and
+      calls for volunteers.
+    </p>
+    <div class="card__footer">
+      <a class="btn btn--secondary btn--small" href="/announcements">Read announcements</a>
+    </div>
+  </article>
+
+  <article class="card">
+    <h3 class="card__title">Job postings</h3>
+    <p class="card__meta">Career services</p>
+    <p class="card__body">
+      Opportunities shared by alumni and partner companies, with applications tracked against
+      each posting.
+    </p>
+    <div class="card__footer">
+      <a class="btn btn--secondary btn--small" href="/job-postings">See postings</a>
+    </div>
+  </article>
+</div>
+
+<h2 class="section-title">For developers</h2>
+
+<div class="card">
+  <p class="card__body">
+    Every screen has a JSON equivalent under <code>/api</code>. The OpenAPI specification is
+    served by Swagger UI at <a href="/api-docs">/api-docs</a>, and the health endpoint at
+    <a href="/api/health">/api/health</a> reports uptime.
+  </p>
+  <div class="card__footer">
+    <a class="btn btn--secondary btn--small" href="/api-docs">Open Swagger UI</a>
+    <a class="btn btn--link" href="/api/users">GET /api/users</a>
+    <a class="btn btn--link" href="/api/job-postings">GET /api/job-postings</a>
+  </div>
+</div>
+
+<%- include('partials/footer') %>

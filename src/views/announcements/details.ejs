@@ -1,19 +1,27 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title><%= announcement.title %> - MIS Alumni Portal</title>
-</head>
-<body>
+<%- include('../partials/head', { title: announcement.title }) %>
+<%- include('../partials/nav', { active: 'announcements' }) %>
+
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <a href="/announcements">Announcements</a><span>/</span><%= announcement.title %>
+</nav>
+
+<article class="article">
   <h1><%= announcement.title %></h1>
-  <p><strong>Id:</strong> <%= announcement.id %> | <strong>Created:</strong> <%= announcement.createdAt %></p>
-  <p><%= announcement.content %></p>
-  <p>
-    <a href="/announcements/<%= announcement.id %>/edit">Edit</a> |
-    <form method="POST" action="/announcements/<%= announcement.id %>/delete" style="display:inline">
-      <button type="submit">Delete</button>
-    </form>
+  <p class="article__meta">
+    Published <%= formatDate(announcement.createdAt) %> · Record #<%= announcement.id %>
   </p>
-  <p><a href="/announcements">All announcements</a> | <a href="/">Back</a></p>
-</body>
-</html>
+  <div class="article__body"><%= announcement.content %></div>
+</article>
+
+<div class="card">
+  <div class="card__footer">
+    <a class="btn btn--primary" href="/announcements/<%= announcement.id %>/edit">Edit</a>
+    <a class="btn btn--secondary" href="/announcements">All announcements</a>
+    <form method="POST" action="/announcements/<%= announcement.id %>/delete"
+          onsubmit="return confirm('Delete this announcement? This cannot be undone.');">
+      <button class="btn btn--danger" type="submit">Delete</button>
+    </form>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

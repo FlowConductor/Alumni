@@ -1,34 +1,61 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Job Postings - MIS Alumni Portal</title>
-</head>
-<body>
-  <h1>Job Postings</h1>
-  <p><a href="/job-postings/new">New posting</a></p>
-  <table border="1" cellpadding="6">
-    <thead><tr><th>Id</th><th>Title</th><th>Company</th><th>Location</th><th>Status</th><th>Posted By</th><th>Actions</th></tr></thead>
-    <tbody>
-      <% postings.forEach((posting) => { %>
-      <tr>
-        <td><%= posting.id %></td>
-        <td><%= posting.title %></td>
-        <td><%= posting.company %></td>
-        <td><%= posting.location || '-' %></td>
-        <td><%= posting.status %></td>
-        <td><%= posting.postedByUsername || 'Company' %></td>
-        <td>
-          <a href="/job-postings/<%= posting.id %>">view</a> |
-          <a href="/job-postings/<%= posting.id %>/edit">edit</a> |
-          <form method="POST" action="/job-postings/<%= posting.id %>/delete" style="display:inline">
-            <button type="submit">delete</button>
-          </form>
-        </td>
-      </tr>
-      <% }); %>
-    </tbody>
-  </table>
-  <p><a href="/">Back</a></p>
-</body>
-</html>
+<%- include('../partials/head', { title: 'Job postings' }) %>
+<%- include('../partials/nav', { active: 'job-postings' }) %>
+
+<div class="page-header">
+  <div class="page-header__text">
+    <h1>Job postings<span class="count-badge"><%= postings.length %></span></h1>
+    <p class="page-subtitle">
+      Opportunities shared by alumni and partner companies. Open postings accept applications.
+    </p>
+  </div>
+  <div class="page-header__actions">
+    <a class="btn btn--primary" href="/job-postings/new">New posting</a>
+  </div>
+</div>
+
+<% if (postings.length === 0) { %>
+  <div class="empty-state">
+    <p>No job postings yet. Be the first to share one.</p>
+    <a class="btn btn--secondary" href="/job-postings/new">Create a posting</a>
+  </div>
+<% } else { %>
+  <div class="table-wrap">
+    <table class="data">
+      <thead>
+        <tr>
+          <th>Id</th>
+          <th>Title</th>
+          <th>Company</th>
+          <th>City</th>
+          <th>Status</th>
+          <th>Posted by</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% postings.forEach((posting) => { %>
+          <tr>
+            <td class="num"><%= posting.id %></td>
+            <td><a href="/job-postings/<%= posting.id %>"><%= posting.title %></a></td>
+            <td><%= posting.company %></td>
+            <td><%= posting.location || '—' %></td>
+            <td><span class="pill pill--<%= posting.status %>"><%= posting.status %></span></td>
+            <td><%= posting.postedByUsername || 'Company' %></td>
+            <td>
+              <div class="actions">
+                <a class="btn btn--link" href="/job-postings/<%= posting.id %>">View</a>
+                <a class="btn btn--link" href="/job-postings/<%= posting.id %>/edit">Edit</a>
+                <form method="POST" action="/job-postings/<%= posting.id %>/delete"
+                      onsubmit="return confirm('Delete this job posting? This cannot be undone.');">
+                  <button class="btn btn--link btn--link-danger" type="submit">Delete</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+<% } %>
+
+<%- include('../partials/footer') %>

@@ -1,41 +1,55 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Edit <%= posting.title %> - MIS Alumni Portal</title>
-</head>
-<body>
-  <h1>Edit Job Posting</h1>
-  <form method="POST" action="/job-postings/<%= posting.id %>">
-    <p>
-      <label for="title">Title:</label><br>
-      <input type="text" id="title" name="title" maxlength="120" value="<%= posting.title %>" required>
-    </p>
-    <p>
-      <label for="company">Company:</label><br>
-      <input type="text" id="company" name="company" value="<%= posting.company %>" required>
-    </p>
-    <p>
-      <label for="posted_by">Posted by (user id, optional):</label><br>
-      <input type="number" id="posted_by" name="posted_by" min="1" value="<%= posting.postedBy || '' %>">
-    </p>
-    <p>
-      <label for="location">Location (optional):</label><br>
-      <input type="text" id="location" name="location" value="<%= posting.location || '' %>">
-    </p>
-    <p>
-      <label for="description">Description (optional):</label><br>
-      <textarea id="description" name="description" rows="4" cols="60"><%= posting.description || '' %></textarea>
-    </p>
-    <p>
-      <label for="status">Status:</label>
-      <select id="status" name="status">
-        <option value="open" <%= posting.status === 'open' ? 'selected' : '' %>>open</option>
-        <option value="closed" <%= posting.status === 'closed' ? 'selected' : '' %>>closed</option>
-      </select>
-    </p>
-    <button type="submit">Save</button>
-  </form>
-  <p><a href="/job-postings/<%= posting.id %>">Back to posting</a> | <a href="/job-postings">All job postings</a></p>
-</body>
-</html>
+<%- include('../partials/head', { title: 'Edit ' + posting.title }) %>
+<%- include('../partials/nav', { active: 'job-postings' }) %>
+
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <a href="/job-postings">Job postings</a><span>/</span><a href="/job-postings/<%= posting.id %>"><%= posting.title %></a><span>/</span>Edit
+</nav>
+
+<div class="page-header">
+  <div class="page-header__text">
+    <h1>Edit job posting</h1>
+    <p class="page-subtitle">Update the posting. Title and company cannot be empty.</p>
+  </div>
+</div>
+
+<form class="form" method="POST" action="/job-postings/<%= posting.id %>">
+  <div class="field">
+    <label for="title">Title <span class="required">(required, max 120 characters)</span></label>
+    <input type="text" id="title" name="title" maxlength="120" value="<%= posting.title %>" required autocomplete="off">
+  </div>
+
+  <div class="field">
+    <label for="company">Company <span class="required">(required)</span></label>
+    <input type="text" id="company" name="company" value="<%= posting.company %>" required autocomplete="off">
+  </div>
+
+  <div class="field">
+    <label for="location">City <span class="required">(optional)</span></label>
+    <input type="text" id="location" name="location" value="<%= posting.location || '' %>" autocomplete="off">
+  </div>
+
+  <div class="field">
+    <label for="description">Description <span class="required">(optional)</span></label>
+    <textarea id="description" name="description" rows="6"><%= posting.description || '' %></textarea>
+  </div>
+
+  <div class="field">
+    <label for="posted_by">Posted by (user id) <span class="required">(optional)</span></label>
+    <input type="number" id="posted_by" name="posted_by" min="1" value="<%= posting.postedBy || '' %>">
+  </div>
+
+  <div class="field">
+    <label for="status">Status</label>
+    <select id="status" name="status">
+      <option value="open" <%= posting.status === 'open' ? 'selected' : '' %>>open</option>
+      <option value="closed" <%= posting.status === 'closed' ? 'selected' : '' %>>closed</option>
+    </select>
+  </div>
+
+  <div class="form-actions">
+    <button class="btn btn--primary" type="submit">Save changes</button>
+    <a class="btn btn--secondary" href="/job-postings/<%= posting.id %>">Cancel</a>
+  </div>
+</form>
+
+<%- include('../partials/footer') %>

@@ -1,31 +1,39 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Announcements - MIS Alumni Portal</title>
-</head>
-<body>
-  <h1>Announcements</h1>
-  <p><a href="/announcements/new">New announcement</a></p>
-  <table border="1" cellpadding="6">
-    <thead><tr><th>Id</th><th>Title</th><th>Created</th><th>Actions</th></tr></thead>
-    <tbody>
-      <% announcements.forEach((announcement) => { %>
-      <tr>
-        <td><%= announcement.id %></td>
-        <td><%= announcement.title %></td>
-        <td><%= announcement.createdAt %></td>
-        <td>
-          <a href="/announcements/<%= announcement.id %>">view</a> |
-          <a href="/announcements/<%= announcement.id %>/edit">edit</a> |
-          <form method="POST" action="/announcements/<%= announcement.id %>/delete" style="display:inline">
-            <button type="submit">delete</button>
-          </form>
-        </td>
-      </tr>
-      <% }); %>
-    </tbody>
-  </table>
-  <p><a href="/">Back</a></p>
-</body>
-</html>
+<%- include('../partials/head', { title: 'Announcements' }) %>
+<%- include('../partials/nav', { active: 'announcements' }) %>
+
+<div class="page-header">
+  <div class="page-header__text">
+    <h1>Announcements<span class="count-badge"><%= announcements.length %></span></h1>
+    <p class="page-subtitle">Notices published to the alumni community.</p>
+  </div>
+  <div class="page-header__actions">
+    <a class="btn btn--primary" href="/announcements/new">New announcement</a>
+  </div>
+</div>
+
+<% if (announcements.length === 0) { %>
+  <div class="empty-state">
+    <p>No announcements yet. Be the first to share one.</p>
+    <a class="btn btn--secondary" href="/announcements/new">Write an announcement</a>
+  </div>
+<% } else { %>
+  <% announcements.slice().reverse().forEach((announcement) => { %>
+    <article class="card">
+      <h2 class="card__title"><%= announcement.title %></h2>
+      <p class="card__meta">Published <%= formatDate(announcement.createdAt) %></p>
+      <p class="card__body">
+        <%= announcement.content.length > 240 ? announcement.content.slice(0, 240) + '…' : announcement.content %>
+      </p>
+      <div class="card__footer">
+        <a class="btn btn--secondary btn--small" href="/announcements/<%= announcement.id %>">Read</a>
+        <a class="btn btn--link" href="/announcements/<%= announcement.id %>/edit">Edit</a>
+        <form method="POST" action="/announcements/<%= announcement.id %>/delete"
+              onsubmit="return confirm('Delete this announcement? This cannot be undone.');">
+          <button class="btn btn--link btn--link-danger" type="submit">Delete</button>
+        </form>
+      </div>
+    </article>
+  <% }); %>
+<% } %>
+
+<%- include('../partials/footer') %>

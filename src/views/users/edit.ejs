@@ -1,22 +1,32 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Edit <%= user.username %> - MIS Alumni Portal</title>
-</head>
-<body>
-  <h1>Edit User</h1>
-  <form method="POST" action="/users/<%= user.id %>">
-    <p>
-      <label for="username">Username:</label><br>
-      <input type="text" id="username" name="username" value="<%= user.username %>" required>
-    </p>
-    <p>
-      <label for="email">Email:</label><br>
-      <input type="email" id="email" name="email" value="<%= user.email %>" required>
-    </p>
-    <button type="submit">Save</button>
-  </form>
-  <p><a href="/users/<%= user.id %>">Back to user</a> | <a href="/users">All users</a></p>
-</body>
-</html>
+<%- include('../partials/head', { title: 'Edit ' + user.username }) %>
+<%- include('../partials/nav', { active: 'users' }) %>
+
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <a href="/users">Users</a><span>/</span><a href="/users/<%= user.id %>"><%= user.username %></a><span>/</span>Edit
+</nav>
+
+<div class="page-header">
+  <div class="page-header__text">
+    <h1>Edit user</h1>
+    <p class="page-subtitle">Update the record for <%= user.username %>.</p>
+  </div>
+</div>
+
+<form class="form" method="POST" action="/users/<%= user.id %>">
+  <div class="field">
+    <label for="username">Username <span class="required">(required)</span></label>
+    <input type="text" id="username" name="username" value="<%= user.username %>" required autocomplete="off">
+  </div>
+
+  <div class="field">
+    <label for="email">Email <span class="required">(required)</span></label>
+    <input type="email" id="email" name="email" value="<%= user.email %>" required autocomplete="off">
+  </div>
+
+  <div class="form-actions">
+    <button class="btn btn--primary" type="submit">Save changes</button>
+    <a class="btn btn--secondary" href="/users/<%= user.id %>">Cancel</a>
+  </div>
+</form>
+
+<%- include('../partials/footer') %>

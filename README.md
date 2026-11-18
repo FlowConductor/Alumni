@@ -19,6 +19,7 @@ Companion documents: [brand.md](brand.md) (brand guidelines) · [DESIGN.md](DESI
 - [Project Structure (MVC)](#project-structure-mvc)
 - [Getting Started](#getting-started)
 - [Current Routes](#current-routes)
+- [Web Interface](#web-interface)
 - [Validation Rules](#validation-rules)
 - [Middleware & Error Handling](#middleware--error-handling)
 - [Testing Invalid Requests (Postman)](#testing-invalid-requests-postman)
@@ -153,6 +154,9 @@ MIS/
 │   └── error.logs          One entry per error handled by the 5xx Guardian
 ├── postman/                Postman collection for manual and automated API checks
 │   └── MIS-Alumni-Portal.postman_collection.json   Invalid-request suite (19 requests)
+├── public/                 Static assets served by express.static
+│   └── css/
+│       └── app.css         The design system: tokens and components from DESIGN.md
 └── src/
     ├── middleware/         Cross-cutting request handling
     │   ├── logger.js       Request logger: prints "10:20:30 POST /api/users 201 18ms"
@@ -188,8 +192,14 @@ MIS/
     │   ├── jobPosting.model.js  Job Posting model: CRUD on job_postings, optionally joined to users (poster relationship)
     │   └── application.model.js Application model: CRUD on job_applications, joined to users and job_postings
     ├── views/             View layer (EJS templates)
+    │   ├── home.ejs               Home page (GET /)
+    │   ├── about.ejs              About page (GET /about)
     │   ├── error.ejs              Error page (400/404/409/500)
     │   ├── 404.ejs                Generic 404 page rendered by the 404 Guardian
+    │   ├── partials/              Shared layout fragments included by every page
+    │   │   ├── head.ejs           <head>: title, viewport, stylesheet
+    │   │   ├── nav.ejs            Skip link, top navigation, opens <main>
+    │   │   └── footer.ejs         Closes <main>, site footer
     │   └── users/
     │       ├── index.ejs          User list page (GET /users)
     │       ├── create.ejs         Create form page (GET /users/new)
@@ -319,7 +329,7 @@ The backend's development server (Express) exposes the following starter routes 
 
 | Method | Route | Description |
 |--------|-------|-------------|
-| GET    | `/`   | Returns `"ok"`; will serve as the temporary main page |
+| GET    | `/`   | Home page (EJS view: `home.ejs`) — hero, module cards, and links into the app |
 | GET    | `/api/health` | Health check; returns JSON with `status`, `uptime` (seconds), and `timestamp` |
 | GET    | `/api-docs` | Swagger UI — interactive API documentation for all endpoints, both JSON API and web pages (spec in `src/docs/openapi.js`) |
 | GET    | `/users` | Web page listing all users (EJS view: `users/index.ejs`) with view/edit/delete actions |
@@ -373,7 +383,7 @@ The backend's development server (Express) exposes the following starter routes 
 | DELETE | `/api/users/{id}` | Deletes the user with the given id and returns the removed record, or `404` if not found |
 | PUT / PATCH | `/api/users/{id}` | Updates a user by id. Request body: `username` and/or `email` (partial updates allowed). Returns the updated record, or `404` if the id does not exist |
 | POST   | `/api/users` | Creates a user. Request body: `username` and `email` (both required). Returns `201` with `{"username": "...", "email": "..."}`; duplicate username/email returns `409`. Users are stored in the MySQL `users` table |
-| GET    | `/about` | Temporary about page (HTML) |
+| GET    | `/about` | About page (EJS view: `about.ejs`) — what the portal is, what is implemented, what is not |
 | GET    | `/alumni` | Returns the list of alumni records (JSON; in-memory store with seed data) |
 | POST   | `/alumni` | Creates an alumni record. Request body: `name` (required), `graduationYear` (integer, optional), `email` (optional). Returns `201` with the created record |
 | GET    | `/hello` | Returns `"Hello, World!"` |
@@ -383,6 +393,28 @@ The backend's development server (Express) exposes the following starter routes 
 Run the server with `npm start`. Interactive API documentation for all endpoints is available via Swagger UI at [http://localhost:3000/api-docs](http://localhost:3000/api-docs); the OpenAPI spec itself lives in `src/docs/openapi.js`. The `/alumni` endpoints are the first endpoints of the Alumni Directory & Profile Management module; the remaining routes are temporary and used to verify the server is running. They will be extended and reorganized as the modules described in [Key Features](#key-features) are implemented.
 
 Any request that matches none of the routes above is answered by the [404 Guardian](#2-404-guardian-notfoundjs) with a `404` and a reason.
+
+## Web Interface
+
+Every page is server-rendered with EJS and styled by one stylesheet, `public/css/app.css`, which implements the tokens and component rules in [DESIGN.md](DESIGN.md). The shared layout lives in `src/views/partials/` (`head.ejs`, `nav.ejs`, `footer.ejs`), so each page file contains only its own content.
+
+| Page | Route | Layout |
+|------|-------|--------|
+| Home | `/` | Hero with the tagline, three module cards, developer links |
+| About | `/about` | Long-form prose: two products in one, what is implemented, what is not |
+| Alumni directory | `/users` | Page header with count badge and one primary action, dense table, empty state |
+| User record | `/users/{id}` | Profile header with an initials avatar, definition list, action sidebar |
+| New / edit user | `/users/new`, `/users/{id}/edit` | Single-column form card, labels above inputs, cancel plus primary |
+| Announcements | `/announcements` | Card list, newest first, excerpt clamped to 240 characters |
+| Announcement | `/announcements/{id}` | Article layout with a metadata line and an action row |
+| New / edit announcement | `/announcements/new`, `/announcements/{id}/edit` | Form card with a textarea |
+| Job postings | `/job-postings` | Dense table with status pills |
+| Job posting | `/job-postings/{id}` | Two columns: description, applications table, apply form; sidebar with details and actions |
+| New / edit posting | `/job-postings/new`, `/job-postings/{id}/edit` | Form card, one field per row |
+| 404 | any unmatched route | Centred error page with the request and the reason |
+| Error | 400 / 404 / 409 / 500 | Centred error page with the message |
+
+Design rules applied across the pages: one filled primary button per screen, hairline borders instead of shadows, status pills for state, tabular figures for ids and dates, destructive actions behind a confirmation prompt, and a skip link plus visible focus rings for keyboard users. The layout collapses to a single column below 1024px and to full-bleed cards below 768px.
 
 ## Validation Rules
 
@@ -585,6 +617,15 @@ Contributions are welcome. Since the project has no code yet, the most valuable 
 **TBD** — the license for this project has not been chosen yet. Until a license is decided and a `LICENSE` file is added, all rights are reserved.
 
 ## Changelog
+
+### 2026-11-11 — Web interface redesign
+
+- Every page rebuilt on the design system: `public/css/app.css` implements the tokens and components from [DESIGN.md](DESIGN.md) (colour, type, radius, spacing, buttons, cards, tables, pills, forms, alerts, empty states).
+- Shared layout extracted into `src/views/partials/` (`head.ejs`, `nav.ejs`, `footer.ejs`) with a skip link, active navigation state, and a site footer.
+- New pages: `home.ejs` (`GET /` now renders a real home page instead of `"ok"`) and `about.ejs` (`GET /about`).
+- All twelve CRUD views restyled: page headers with count badges, dense tables for users and postings, card lists for announcements, two-column detail pages, single-column form cards with required-field labels and cancel actions, and confirmation prompts on every delete.
+- `404.ejs` and `error.ejs` rebuilt as centred error pages that show the request and the reason.
+- View helpers `formatDate` and `initials` added to `app.locals`; `express.static` serves `public/`.
 
 ### 2026-11-11 — Validation rules, request logging, and error guardians
 

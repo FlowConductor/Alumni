@@ -1,19 +1,60 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title><%= user.username %> - MIS Alumni Portal</title>
-</head>
-<body>
-  <h1><%= user.username %></h1>
-  <p><strong>Id:</strong> <%= user.id %></p>
-  <p><strong>Email:</strong> <%= user.email %></p>
-  <p>
-    <a href="/users/<%= user.id %>/edit">Edit</a> |
-    <form method="POST" action="/users/<%= user.id %>/delete" style="display:inline">
-      <button type="submit">Delete</button>
-    </form>
-  </p>
-  <p><a href="/users">All users</a> | <a href="/">Back</a></p>
-</body>
-</html>
+<%- include('../partials/head', { title: user.username }) %>
+<%- include('../partials/nav', { active: 'users' }) %>
+
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <a href="/users">Users</a><span>/</span><%= user.username %>
+</nav>
+
+<div class="profile-header">
+  <div class="avatar" aria-hidden="true"><%= initials(user.username) %></div>
+  <div class="profile-header__text">
+    <h1><%= user.username %></h1>
+    <p><%= user.email %></p>
+  </div>
+</div>
+
+<div class="detail-grid">
+  <div class="detail-main">
+    <div class="card">
+      <h2 class="card__title">Record</h2>
+      <dl class="definition-list">
+        <div>
+          <dt>Id</dt>
+          <dd><%= user.id %></dd>
+        </div>
+        <div>
+          <dt>Username</dt>
+          <dd><%= user.username %></dd>
+        </div>
+        <div>
+          <dt>Email</dt>
+          <dd><%= user.email %></dd>
+        </div>
+      </dl>
+    </div>
+  </div>
+
+  <aside class="detail-side">
+    <div class="card">
+      <h2 class="card__title">Actions</h2>
+      <div class="card__footer">
+        <a class="btn btn--primary" href="/users/<%= user.id %>/edit">Edit</a>
+        <form method="POST" action="/users/<%= user.id %>/delete"
+              onsubmit="return confirm('Delete this user? This cannot be undone.');">
+          <button class="btn btn--danger" type="submit">Delete</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 class="card__title">Related</h2>
+      <div class="card__footer">
+        <a class="btn btn--link" href="/api/users/<%= user.id %>">JSON record</a>
+        <a class="btn btn--link" href="/api/users/<%= user.id %>/donations">Donations</a>
+        <a class="btn btn--link" href="/api/users/<%= user.id %>/job-postings">Postings</a>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<%- include('../partials/footer') %>

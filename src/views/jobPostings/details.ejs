@@ -1,54 +1,139 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title><%= posting.title %> - MIS Alumni Portal</title>
-</head>
-<body>
-  <h1><%= posting.title %></h1>
-  <p>
-    <strong>Company:</strong> <%= posting.company %> |
-    <strong>Location:</strong> <%= posting.location || '-' %> |
-    <strong>Status:</strong> <%= posting.status %> |
-    <strong>Posted by:</strong> <%= posting.postedByUsername || 'Company' %>
-  </p>
-  <% if (posting.description) { %><p><%= posting.description %></p><% } %>
+<%- include('../partials/head', { title: posting.title }) %>
+<%- include('../partials/nav', { active: 'job-postings' }) %>
 
-  <h2>Applications (<%= applications.length %>)</h2>
-  <table border="1" cellpadding="6">
-    <thead><tr><th>Id</th><th>Applicant</th><th>Status</th><th>Cover letter</th><th>Applied at</th></tr></thead>
-    <tbody>
-      <% applications.forEach((application) => { %>
-      <tr>
-        <td><%= application.id %></td>
-        <td><%= application.applicantUsername %> (#<%= application.userId %>)</td>
-        <td><%= application.status %></td>
-        <td><%= application.coverLetter || '-' %></td>
-        <td><%= application.createdAt %></td>
-      </tr>
-      <% }); %>
-    </tbody>
-  </table>
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <a href="/job-postings">Job postings</a><span>/</span><%= posting.title %>
+</nav>
 
-  <h2>Apply</h2>
-  <form method="POST" action="/job-postings/<%= posting.id %>/apply">
-    <p>
-      <label for="user_id">Your user id:</label><br>
-      <input type="number" id="user_id" name="user_id" min="1" required>
+<div class="page-header">
+  <div class="page-header__text">
+    <h1><%= posting.title %></h1>
+    <p class="page-subtitle">
+      <%= posting.company %><% if (posting.location) { %> · <%= posting.location %><% } %>
+      · Posted by <%= posting.postedByUsername || 'Company' %>
     </p>
-    <p>
-      <label for="cover_letter">Cover letter (optional):</label><br>
-      <textarea id="cover_letter" name="cover_letter" rows="4" cols="60"></textarea>
-    </p>
-    <button type="submit">Apply</button>
-  </form>
+  </div>
+  <div class="page-header__actions">
+    <span class="pill pill--<%= posting.status %>"><%= posting.status %></span>
+  </div>
+</div>
 
-  <p>
-    <a href="/job-postings/<%= posting.id %>/edit">Edit</a> |
-    <form method="POST" action="/job-postings/<%= posting.id %>/delete" style="display:inline">
-      <button type="submit">Delete</button>
-    </form>
-  </p>
-  <p><a href="/job-postings">All job postings</a> | <a href="/">Back</a></p>
-</body>
-</html>
+<div class="detail-grid">
+  <div class="detail-main">
+    <div class="card">
+      <h2 class="card__title">Description</h2>
+      <% if (posting.description) { %>
+        <div class="article__body"><%= posting.description %></div>
+      <% } else { %>
+        <p class="card__meta">No description was provided for this posting.</p>
+      <% } %>
+    </div>
+
+    <div class="card">
+      <h2 class="card__title">Applications<span class="count-badge"><%= applications.length %></span></h2>
+      <% if (applications.length === 0) { %>
+        <div class="empty-state">
+          <p>No applications yet.</p>
+        </div>
+      <% } else { %>
+        <div class="table-wrap">
+          <table class="data">
+            <thead>
+              <tr>
+                <th>Id</th>
+                <th>Applicant</th>
+                <th>Status</th>
+                <th>Cover letter</th>
+                <th>Applied</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% applications.forEach((application) => { %>
+                <tr>
+                  <td class="num"><%= application.id %></td>
+                  <td>
+                    <a href="/users/<%= application.userId %>"><%= application.applicantUsername %></a>
+                  </td>
+                  <td><span class="pill pill--<%= application.status %>"><%= application.status %></span></td>
+                  <td><%= application.coverLetter || '—' %></td>
+                  <td class="num"><%= formatDate(application.createdAt) %></td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+    </div>
+
+    <div class="card">
+      <h2 class="card__title">Apply to this posting</h2>
+      <form method="POST" action="/job-postings/<%= posting.id %>/apply">
+        <div class="field">
+          <label for="user_id">Your user id <span class="required">(required)</span></label>
+          <input type="number" id="user_id" name="user_id" min="1" required>
+          <p class="hint">The id of your record in the alumni directory.</p>
+        </div>
+        <div class="field">
+          <label for="cover_letter">Cover letter <span class="required">(optional)</span></label>
+          <textarea id="cover_letter" name="cover_letter" rows="4"></textarea>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn--primary" type="submit">Apply</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <aside class="detail-side">
+    <div class="card">
+      <h2 class="card__title">Details</h2>
+      <dl class="definition-list">
+        <div>
+          <dt>Id</dt>
+          <dd><%= posting.id %></dd>
+        </div>
+        <div>
+          <dt>Company</dt>
+          <dd><%= posting.company %></dd>
+        </div>
+        <div>
+          <dt>City</dt>
+          <dd><%= posting.location || '—' %></dd>
+        </div>
+        <div>
+          <dt>Status</dt>
+          <dd><span class="pill pill--<%= posting.status %>"><%= posting.status %></span></dd>
+        </div>
+        <div>
+          <dt>Posted by</dt>
+          <dd><%= posting.postedByUsername || 'Company' %></dd>
+        </div>
+        <div>
+          <dt>Created</dt>
+          <dd><%= formatDate(posting.createdAt) %></dd>
+        </div>
+      </dl>
+    </div>
+
+    <div class="card">
+      <h2 class="card__title">Actions</h2>
+      <div class="card__footer">
+        <a class="btn btn--primary" href="/job-postings/<%= posting.id %>/edit">Edit</a>
+        <form method="POST" action="/job-postings/<%= posting.id %>/delete"
+              onsubmit="return confirm('Delete this job posting? This cannot be undone.');">
+          <button class="btn btn--danger" type="submit">Delete</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 class="card__title">Related</h2>
+      <div class="card__footer">
+        <a class="btn btn--link" href="/api/job-postings/<%= posting.id %>">JSON record</a>
+        <a class="btn btn--link" href="/api/job-postings/<%= posting.id %>/applications">Applications JSON</a>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<%- include('../partials/footer') %>

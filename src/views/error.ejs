@@ -1,12 +1,16 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title><%= title %> - MIS Alumni Portal</title>
-</head>
-<body>
+<%- include('partials/head', { title: title }) %>
+<%- include('partials/nav', { active: null }) %>
+
+<div class="error-page">
+  <p class="error-page__code">Request error</p>
   <h1><%= title %></h1>
   <p><%= message %></p>
-  <p><a href="/users">All users</a> | <a href="/">Back</a></p>
-</body>
-</html>
+  <div class="error-page__links">
+    <a class="btn btn--primary" href="/">Home</a>
+    <a class="btn btn--secondary" href="/users">Users</a>
+    <a class="btn btn--secondary" href="/announcements">Announcements</a>
+    <a class="btn btn--secondary" href="/job-postings">Job postings</a>
+  </div>
+</div>
+
+<%- include('partials/footer') %>

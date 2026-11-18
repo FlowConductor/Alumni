@@ -1,31 +1,55 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Users - MIS Alumni Portal</title>
-</head>
-<body>
-  <h1>Users</h1>
-  <p><a href="/users/new">New user</a></p>
-  <table border="1" cellpadding="6">
-    <thead><tr><th>Id</th><th>Username</th><th>Email</th><th>Actions</th></tr></thead>
-    <tbody>
-      <% users.forEach((user) => { %>
-      <tr>
-        <td><%= user.id %></td>
-        <td><%= user.username %></td>
-        <td><%= user.email %></td>
-        <td>
-          <a href="/users/<%= user.id %>">view</a> |
-          <a href="/users/<%= user.id %>/edit">edit</a> |
-          <form method="POST" action="/users/<%= user.id %>/delete" style="display:inline">
-            <button type="submit">delete</button>
-          </form>
-        </td>
-      </tr>
-      <% }); %>
-    </tbody>
-  </table>
-  <p><a href="/">Back</a></p>
-</body>
-</html>
+<%- include('../partials/head', { title: 'Alumni directory' }) %>
+<%- include('../partials/nav', { active: 'users' }) %>
+
+<div class="page-header">
+  <div class="page-header__text">
+    <h1>Alumni directory<span class="count-badge"><%= users.length %></span></h1>
+    <p class="page-subtitle">
+      Every graduate on record. This is the core tracking data the department maintains.
+    </p>
+  </div>
+  <div class="page-header__actions">
+    <a class="btn btn--primary" href="/users/new">New user</a>
+  </div>
+</div>
+
+<% if (users.length === 0) { %>
+  <div class="empty-state">
+    <p>No alumni on record yet.</p>
+    <a class="btn btn--secondary" href="/users/new">Add the first user</a>
+  </div>
+<% } else { %>
+  <div class="table-wrap">
+    <table class="data">
+      <thead>
+        <tr>
+          <th>Id</th>
+          <th>Username</th>
+          <th>Email</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% users.forEach((user) => { %>
+          <tr>
+            <td class="num"><%= user.id %></td>
+            <td><a href="/users/<%= user.id %>"><%= user.username %></a></td>
+            <td><%= user.email %></td>
+            <td>
+              <div class="actions">
+                <a class="btn btn--link" href="/users/<%= user.id %>">View</a>
+                <a class="btn btn--link" href="/users/<%= user.id %>/edit">Edit</a>
+                <form method="POST" action="/users/<%= user.id %>/delete"
+                      onsubmit="return confirm('Delete this user? This cannot be undone.');">
+                  <button class="btn btn--link btn--link-danger" type="submit">Delete</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+<% } %>
+
+<%- include('../partials/footer') %>

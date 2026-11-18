@@ -1,0 +1,15 @@
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site-header">
+  <nav class="nav" aria-label="Main">
+    <a class="nav__brand" href="/">MIS Alumni Portal</a>
+    <ul class="nav__links">
+      <li><a class="nav__link <%= active === 'home' ? 'is-active' : '' %>" href="/">Home</a></li>
+      <li><a class="nav__link <%= active === 'users' ? 'is-active' : '' %>" href="/users">Users</a></li>
+      <li><a class="nav__link <%= active === 'announcements' ? 'is-active' : '' %>" href="/announcements">Announcements</a></li>
+      <li><a class="nav__link <%= active === 'job-postings' ? 'is-active' : '' %>" href="/job-postings">Job postings</a></li>
+      <li><a class="nav__link <%= active === 'about' ? 'is-active' : '' %>" href="/about">About</a></li>
+      <li><a class="nav__link" href="/api-docs">API</a></li>
+    </ul>
+  </nav>
+</header>
+<main id="main" class="container">

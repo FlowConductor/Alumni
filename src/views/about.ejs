@@ -1,0 +1,63 @@
+<%- include('partials/head', { title: 'About' }) %>
+<%- include('partials/nav', { active: 'about' }) %>
+
+<div class="page-header">
+  <div class="page-header__text">
+    <h1>About the portal</h1>
+    <p class="page-subtitle">
+      An alumni tracking system and a community portal for the Department of Management
+      Information Systems at Istanbul University, Faculty of Economics.
+    </p>
+  </div>
+</div>
+
+<div class="card">
+  <div class="prose">
+    <h2>Two products in one</h2>
+    <p>
+      The portal serves two needs that are usually built separately, and treats them as one
+      system:
+    </p>
+    <ul>
+      <li>
+        <strong>An alumni tracking system.</strong> A structured, institutional record of MIS
+        graduates — who they are, how to reach them, and how their careers have progressed.
+        This is the data the department needs for accreditation reports, curriculum planning,
+        and demonstrating the outcomes of the programme.
+      </li>
+      <li>
+        <strong>An alumni portal.</strong> A community hub where graduates find each other,
+        read department news, and share career opportunities.
+      </li>
+    </ul>
+    <p>
+      The two reinforce each other: the more useful the portal is to alumni, the better the
+      data the department holds; the better the data, the more the department can offer back.
+    </p>
+
+    <h2>What is implemented today</h2>
+    <ul>
+      <li>Alumni directory with full create, read, update, and delete on the web and over JSON.</li>
+      <li>Announcements, published and managed by department staff.</li>
+      <li>Job postings with applications tracked against each posting.</li>
+      <li>Donations recorded against alumni, exposed through the JSON API.</li>
+      <li>An OpenAPI specification served by Swagger UI at <a href="/api-docs">/api-docs</a>.</li>
+    </ul>
+
+    <h2>What is not implemented yet</h2>
+    <ul>
+      <li>Authentication and accounts — the portal is open on a trusted network for now.</li>
+      <li>Events, mentorship matching, and fundraising campaigns.</li>
+      <li>Profile privacy controls and verified membership.</li>
+    </ul>
+
+    <h2>Built with</h2>
+    <p>
+      Node.js and Express with server-rendered EJS views, MySQL for storage, and hand-written
+      SQL migrations. The interface follows the design system in
+      <a href="https://github.com/FlowConductor/Alumni/blob/main/DESIGN.md">DESIGN.md</a>.
+    </p>
+  </div>
+</div>
+
+<%- include('partials/footer') %>

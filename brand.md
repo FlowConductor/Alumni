@@ -2,7 +2,7 @@
 
 The brand reference for the MIS Alumni Portal: who we are, how we sound, and how the product should look. It is the companion to [README.md](README.md) (what the product does), [ddd.md](ddd.md) (how the domain is modelled), and [DESIGN.md](DESIGN.md) (the design system: tokens, components, responsive rules).
 
-Status: the written identity below is decided. Visual values live in [DESIGN.md](DESIGN.md), which is the source of truth for colours, type, radius, and spacing; nothing is applied in the codebase yet — the current views are unstyled HTML. Items marked **TBD** are open decisions.
+Status: the written identity below is decided. Visual values live in [DESIGN.md](DESIGN.md), which is the source of truth for colours, type, radius, and spacing, and are implemented in `public/css/app.css`. Items marked **TBD** are open decisions.
 
 ## Table of Contents
 
@@ -119,7 +119,7 @@ Contrast: body text must reach WCAG AA (4.5:1) against its background. Never use
 
 ### Typography
 
-**TBD** — no typeface is licensed yet. The interim stack is the system sans-serif, defined as tokens in [DESIGN.md](DESIGN.md) (`{typography.display-lg}` through `{typography.label}`). Two families maximum; a licensed humanist sans-serif would replace the system stack in DESIGN.md and in the single stylesheet, nowhere else.
+**TBD** — no typeface is licensed yet. The interim stack is the system sans-serif, defined as tokens in [DESIGN.md](DESIGN.md) (`{typography.display-lg}` through `{typography.label}`). Two families maximum; a licensed humanist sans-serif would replace the system stack in DESIGN.md and in `public/css/app.css`, nowhere else.
 
 ### Imagery
 
@@ -162,7 +162,7 @@ Where the brand currently lives, so changes stay in one place:
 | API documentation | `src/docs/openapi.js` (served at `/api-docs`) |
 | Project description | `README.md`, `package.json` (`description`) |
 
-There is no shared layout or stylesheet yet. When the first one is added, it implements the tokens in [DESIGN.md](DESIGN.md) and becomes the single place those values are written in code.
+The shared layout lives in `src/views/partials/` (`head.ejs`, `nav.ejs`, `footer.ejs`) and the tokens are implemented once in `public/css/app.css` — the single place those values are written in code.
 
 ## Do and Don't
 
@@ -186,7 +186,7 @@ There is no shared layout or stylesheet yet. When the first one is added, it imp
 | Asset | Status |
 |-------|--------|
 | Logo (SVG, light and dark) | TBD |
-| Design tokens (colours, type, radius, spacing) | Defined in [DESIGN.md](DESIGN.md); not implemented in code |
+| Design tokens (colours, type, radius, spacing) | Defined in [DESIGN.md](DESIGN.md); implemented in `public/css/app.css` |
 | Typeface licence | TBD |
 | Social preview image | TBD |
 | Brand owner / approver | TBD — the department decides |

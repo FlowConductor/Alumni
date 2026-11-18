@@ -1,22 +1,19 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>404 Not Found - MIS Alumni Portal</title>
-</head>
-<body>
-  <h1>404 - Page not found</h1>
+<%- include('partials/head', { title: '404 Not Found' }) %>
+<%- include('partials/nav', { active: null }) %>
+
+<div class="error-page">
+  <p class="error-page__code">404</p>
+  <h1>Page not found</h1>
   <p>The page you asked for does not exist on the MIS Alumni Portal.</p>
-  <ul>
-    <li><strong>Request:</strong> <%= method %> <%= path %></li>
-    <li><strong>Reason:</strong> <%= reason %></li>
-  </ul>
-  <p>
-    <a href="/">Home</a> |
-    <a href="/users">Users</a> |
-    <a href="/announcements">Announcements</a> |
-    <a href="/job-postings">Job postings</a> |
-    <a href="/api-docs">API documentation</a>
-  </p>
-</body>
-</html>
+  <p class="error-page__reason"><%= method %> <%= path %></p>
+  <p><%= reason %></p>
+  <div class="error-page__links">
+    <a class="btn btn--primary" href="/">Home</a>
+    <a class="btn btn--secondary" href="/users">Users</a>
+    <a class="btn btn--secondary" href="/announcements">Announcements</a>
+    <a class="btn btn--secondary" href="/job-postings">Job postings</a>
+    <a class="btn btn--secondary" href="/api-docs">API documentation</a>
+  </div>
+</div>
+
+<%- include('partials/footer') %>

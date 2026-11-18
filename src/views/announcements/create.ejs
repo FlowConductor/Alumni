@@ -1,22 +1,33 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>New Announcement - MIS Alumni Portal</title>
-</head>
-<body>
-  <h1>New Announcement</h1>
-  <form method="POST" action="/announcements">
-    <p>
-      <label for="title">Title:</label><br>
-      <input type="text" id="title" name="title" required>
-    </p>
-    <p>
-      <label for="content">Content:</label><br>
-      <textarea id="content" name="content" rows="6" cols="60" required></textarea>
-    </p>
-    <button type="submit">Create</button>
-  </form>
-  <p><a href="/announcements">All announcements</a> | <a href="/">Back</a></p>
-</body>
-</html>
+<%- include('../partials/head', { title: 'New announcement' }) %>
+<%- include('../partials/nav', { active: 'announcements' }) %>
+
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <a href="/announcements">Announcements</a><span>/</span>New announcement
+</nav>
+
+<div class="page-header">
+  <div class="page-header__text">
+    <h1>New announcement</h1>
+    <p class="page-subtitle">Write a notice for the alumni community. Both fields are required.</p>
+  </div>
+</div>
+
+<form class="form" method="POST" action="/announcements">
+  <div class="field">
+    <label for="title">Title <span class="required">(required)</span></label>
+    <input type="text" id="title" name="title" required autocomplete="off">
+  </div>
+
+  <div class="field">
+    <label for="content">Content <span class="required">(required)</span></label>
+    <textarea id="content" name="content" rows="8" required></textarea>
+    <p class="hint">Line breaks are preserved on the published page.</p>
+  </div>
+
+  <div class="form-actions">
+    <button class="btn btn--primary" type="submit">Publish announcement</button>
+    <a class="btn btn--secondary" href="/announcements">Cancel</a>
+  </div>
+</form>
+
+<%- include('../partials/footer') %>
