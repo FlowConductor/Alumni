@@ -1,16 +1,18 @@
-// API routes for donations — maps /api/donations endpoints
-// to the ApiDonation controller (direct routes).
+// API routes for donations — financial records, so every route is staff or admin.
 
 const express = require('express');
 const apiDonationController = require('../controllers/apiDonation.controller');
+const { requireRole } = require('../middleware/auth');
 
 const router = express.Router();
 
-router.get('/', apiDonationController.getAll);
-router.post('/', apiDonationController.create);
-router.get('/:id', apiDonationController.getById);
-router.put('/:id', apiDonationController.update);
-router.patch('/:id', apiDonationController.update);
-router.delete('/:id', apiDonationController.remove);
+const STAFF = ['staff', 'admin'];
+
+router.get('/', requireRole(...STAFF), apiDonationController.getAll);
+router.get('/:id', requireRole(...STAFF), apiDonationController.getById);
+router.post('/', requireRole(...STAFF), apiDonationController.create);
+router.put('/:id', requireRole(...STAFF), apiDonationController.update);
+router.patch('/:id', requireRole(...STAFF), apiDonationController.update);
+router.delete('/:id', requireRole(...STAFF), apiDonationController.remove);
 
 module.exports = router;

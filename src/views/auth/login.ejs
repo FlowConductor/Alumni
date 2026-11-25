@@ -25,6 +25,10 @@
 <% } %>
 
 <form class="form" method="POST" action="/login" novalidate>
+  <% if (next) { %>
+    <input type="hidden" name="next" value="<%= next %>">
+  <% } %>
+
   <div class="field">
     <label for="email">Email <span class="required">(required)</span></label>
     <input type="email" id="email" name="email" value="<%= values.email %>"

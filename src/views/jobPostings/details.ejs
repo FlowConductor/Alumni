@@ -73,6 +73,7 @@
       <% } %>
     </div>
 
+    <% if (canApply) { %>
     <div class="card">
       <h2 class="card__title">Apply to this posting</h2>
       <p class="card__meta">
@@ -93,6 +94,15 @@
         </div>
       </form>
     </div>
+    <% } else if (!currentUser) { %>
+    <div class="card">
+      <h2 class="card__title">Apply to this posting</h2>
+      <p class="card__meta">
+        <a href="/login?next=%2Fjob-postings%2F<%= posting.id %>">Sign in</a> as an alumni member to
+        apply. Accounts created before registration existed have no password.
+      </p>
+    </div>
+    <% } %>
   </div>
 
   <aside class="detail-side">
@@ -126,6 +136,7 @@
       </dl>
     </div>
 
+    <% if (canManage) { %>
     <div class="card">
       <h2 class="card__title">Actions</h2>
       <div class="card__footer">
@@ -139,6 +150,7 @@
         <a class="btn btn--link" href="/api/job-postings/<%= posting.id %>">JSON record</a>
       </div>
     </div>
+    <% } %>
 
     <div class="card">
       <h2 class="card__title">Related records</h2>

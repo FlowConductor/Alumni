@@ -47,9 +47,19 @@ app.use(requestLogger);
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(sessionMiddleware());
 
-// The signed-in user, available to every template as `currentUser`.
+// The signed-in user, available to every template as `currentUser`, plus the
+// affordances used to hide actions a role cannot perform. These flags decide what
+// a page *shows*; the guards in src/middleware/auth.js decide what is allowed, and
+// they never trust a flag from the client.
 app.use((req, res, next) => {
-  res.locals.currentUser = req.session.user || null;
+  const user = req.session.user || null;
+  const role = user ? user.role : null;
+
+  res.locals.currentUser = user;
+  res.locals.canManage = role === 'staff' || role === 'admin';
+  res.locals.canDelete = role === 'admin';
+  res.locals.canApply = role === 'alumni';
+
   next();
 });
 app.use(express.json());

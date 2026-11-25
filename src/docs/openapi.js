@@ -15,7 +15,7 @@ module.exports = {
   tags: [
     { name: 'General', description: 'Temporary and health-check routes' },
     { name: 'Alumni', description: 'Alumni directory starter endpoints' },
-    { name: 'Users', description: 'User CRUD endpoints (persisted to data/users.json)' },
+    { name: 'Users', description: 'User CRUD endpoints (persisted to the MySQL users table)' },
     { name: 'Users (Web)', description: 'HTML pages and form endpoints for users' },
     { name: 'Announcements', description: 'Announcement CRUD endpoints (persisted to data/announcements.json)' },
     { name: 'Announcements (Web)', description: 'HTML pages and form endpoints for announcements' },
@@ -151,7 +151,7 @@ module.exports = {
         summary: 'List all saved users',
         responses: {
           200: {
-            description: 'User records from data/users.json',
+            description: 'User records from the MySQL users table (password_hash is never selected)',
             content: {
               'application/json': {
                 schema: { type: 'array', items: { $ref: '#/components/schemas/User' } },
@@ -162,7 +162,7 @@ module.exports = {
       },
       post: {
         tags: ['Users'],
-        summary: 'Create a user (persisted to data/users.json)',
+        summary: 'Create a user (persisted to the MySQL users table)',
         requestBody: {
           required: true,
           content: {
@@ -171,7 +171,7 @@ module.exports = {
         },
         responses: {
           201: {
-            description: 'Created user (username and email)',
+            description: 'Created user (id, username, email, role)',
             content: {
               'application/json': { schema: { $ref: '#/components/schemas/UserCreated' } },
             },
@@ -914,9 +914,12 @@ module.exports = {
       UserCreated: {
         type: 'object',
         properties: {
+          id: { type: 'integer', example: 21 },
           username: { type: 'string', example: 'senol' },
           email: { type: 'string', format: 'email', example: 'senol@example.com' },
+          role: { type: 'string', enum: ['alumni', 'employer', 'staff', 'admin'], example: 'alumni' },
         },
+        description: 'The created record, including its id for follow-up requests.',
       },
       UserInput: {
         type: 'object',

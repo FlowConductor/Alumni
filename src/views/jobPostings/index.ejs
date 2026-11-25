@@ -10,7 +10,9 @@
     </p>
   </div>
   <div class="page-header__actions">
-    <a class="btn btn--primary" href="/job-postings/new">New posting</a>
+    <% if (canManage) { %>
+      <a class="btn btn--primary" href="/job-postings/new">New posting</a>
+    <% } %>
   </div>
 </div>
 
@@ -46,11 +48,13 @@
             <td>
               <div class="actions">
                 <a class="btn btn--link" href="/job-postings/<%= posting.id %>">View</a>
-                <a class="btn btn--link" href="/job-postings/<%= posting.id %>/edit">Edit</a>
-                <form method="POST" action="/job-postings/<%= posting.id %>/delete"
-                      onsubmit="return confirm('Delete this job posting? This cannot be undone.');">
-                  <button class="btn btn--link btn--link-danger" type="submit">Delete</button>
-                </form>
+                <% if (canManage) { %>
+                  <a class="btn btn--link" href="/job-postings/<%= posting.id %>/edit">Edit</a>
+                  <form method="POST" action="/job-postings/<%= posting.id %>/delete"
+                        onsubmit="return confirm('Delete this job posting? This cannot be undone.');">
+                    <button class="btn btn--link btn--link-danger" type="submit">Delete</button>
+                  </form>
+                <% } %>
               </div>
             </td>
           </tr>

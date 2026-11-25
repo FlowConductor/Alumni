@@ -5,13 +5,7 @@
 // exposed outside production.
 
 const { writeErrorLog } = require('./errorLog');
-
-function wantsJson(req) {
-  if (req.path === '/api' || req.path.startsWith('/api/')) {
-    return true;
-  }
-  return req.accepts(['html', 'json']) === 'json';
-}
+const { wantsJson } = require('../lib/http');
 
 function statusOf(err) {
   const status = Number(err && (err.status || err.statusCode));

@@ -52,7 +52,14 @@ async function create(req, res) {
     throw err;
   }
 
-  res.status(201).json({ username: created.username, email: created.email });
+  // Return the created record including its id: callers need it for follow-up
+  // requests (GET/PATCH/DELETE /api/users/:id).
+  res.status(201).json({
+    id: created.id,
+    username: created.username,
+    email: created.email,
+    role: created.role,
+  });
 }
 
 async function update(req, res) {

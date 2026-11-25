@@ -8,7 +8,9 @@
     <p class="page-subtitle">Notices published to the alumni community, newest first.</p>
   </div>
   <div class="page-header__actions">
-    <a class="btn btn--primary" href="/announcements/new">New announcement</a>
+    <% if (canManage) { %>
+      <a class="btn btn--primary" href="/announcements/new">New announcement</a>
+    <% } %>
   </div>
 </div>
 
@@ -27,11 +29,13 @@
       </p>
       <div class="card__footer">
         <a class="btn btn--secondary btn--small" href="/announcements/<%= announcement.id %>">Read</a>
-        <a class="btn btn--link" href="/announcements/<%= announcement.id %>/edit">Edit</a>
-        <form method="POST" action="/announcements/<%= announcement.id %>/delete"
-              onsubmit="return confirm('Delete this announcement? This cannot be undone.');">
-          <button class="btn btn--link btn--link-danger" type="submit">Delete</button>
-        </form>
+        <% if (canManage) { %>
+          <a class="btn btn--link" href="/announcements/<%= announcement.id %>/edit">Edit</a>
+          <form method="POST" action="/announcements/<%= announcement.id %>/delete"
+                onsubmit="return confirm('Delete this announcement? This cannot be undone.');">
+            <button class="btn btn--link btn--link-danger" type="submit">Delete</button>
+          </form>
+        <% } %>
       </div>
     </article>
   <% }); %>

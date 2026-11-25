@@ -1,16 +1,19 @@
-// API routes for job postings — maps /api/job-postings endpoints
-// to the ApiJobPosting controller (direct routes).
+// API routes for job postings — reads are public, writes are staff or admin.
 
 const express = require('express');
 const apiJobPostingController = require('../controllers/apiJobPosting.controller');
+const { requireRole } = require('../middleware/auth');
 
 const router = express.Router();
 
+const STAFF = ['staff', 'admin'];
+
 router.get('/', apiJobPostingController.getAll);
-router.post('/', apiJobPostingController.create);
 router.get('/:id', apiJobPostingController.getById);
-router.put('/:id', apiJobPostingController.update);
-router.patch('/:id', apiJobPostingController.update);
-router.delete('/:id', apiJobPostingController.remove);
+
+router.post('/', requireRole(...STAFF), apiJobPostingController.create);
+router.put('/:id', requireRole(...STAFF), apiJobPostingController.update);
+router.patch('/:id', requireRole(...STAFF), apiJobPostingController.update);
+router.delete('/:id', requireRole(...STAFF), apiJobPostingController.remove);
 
 module.exports = router;

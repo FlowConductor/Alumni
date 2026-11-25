@@ -4,13 +4,14 @@
 // only what the interface needs to render: id, username, role. The password hash
 // never enters the session, a view, or a log line.
 //
-// Sign-in does not yet guard any route: every page is still reachable without a
-// session. Enforcing the role matrix in ddd.md section 8 is the next step, and it
-// belongs in a requireRole middleware rather than in each controller.
+// Signing in is what unlocks the directory and the write routes; the guards
+// themselves live in src/middleware/auth.js and are attached in the route files,
+// so no controller decides who may call it.
 
 const UserModel = require('../models/user.model');
 const { hashPassword, verifyPassword } = require('../lib/password');
 const { COOKIE_NAME } = require('../lib/session');
+const { safeNext } = require('../lib/http');
 
 const USERNAME_PATTERN = /^[a-zA-Z0-9._-]{3,100}$/;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -90,6 +91,12 @@ async function register(req, res) {
       role: 'alumni',
     });
 
+    // Sign the new account in immediately: the directory it lands on now needs a
+    // session, so redirecting there without one would bounce back to sign-in.
+    await regenerateSession(req);
+    req.session[SESSION_USER] = { id: user.id, username: user.username, role: user.role };
+    await saveSession(req);
+
     return res.redirect(`/users?registered=${encodeURIComponent(user.username)}`);
   } catch (err) {
     if (err.code === 'ER_DUP_ENTRY') {
@@ -109,7 +116,11 @@ function loginForm(req, res) {
   if (req.session[SESSION_USER]) {
     return res.redirect('/users');
   }
-  return res.render('auth/login', { errors: [], values: { email: '' } });
+  return res.render('auth/login', {
+    errors: [],
+    values: { email: '' },
+    next: safeNext(req.query.next) || '',
+  });
 }
 
 function regenerateSession(req) {
@@ -132,12 +143,13 @@ async function login(req, res) {
   const email = (body.email || '').trim();
   const password = body.password || '';
   const values = { email };
+  const next = safeNext(body.next) || '';
 
   const errors = [];
   if (!email) errors.push('Field "email" is required.');
   if (!password) errors.push('Field "password" is required.');
   if (errors.length > 0) {
-    return res.status(400).render('auth/login', { errors, values });
+    return res.status(400).render('auth/login', { errors, values, next });
   }
 
   const credentials = await UserModel.findCredentials(email);
@@ -150,6 +162,7 @@ async function login(req, res) {
     return res.status(401).render('auth/login', {
       errors: ['Email or password is incorrect.'],
       values,
+      next,
     });
   }
 
@@ -162,7 +175,7 @@ async function login(req, res) {
   };
   await saveSession(req);
 
-  return res.redirect('/users');
+  return res.redirect(next || '/users');
 }
 
 /* ------------------------------------------------------------------ logout */

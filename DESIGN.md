@@ -409,7 +409,7 @@ Portraits are square (1:1), cropped to the face, 96px in tables and 160px on a p
 - **Profile header**: square portrait, name at `{typography.display-md}`, graduation year and department in `{typography.body-sm}` `{colors.ink-mute}`, and a privacy indicator pill stating who can see the profile.
 - **Campaign progress**: a 8px `{rounded.pill}` track on `{colors.surface-sunken}` with a `{colors.accent}` fill, the raised amount in `{typography.body-numeric}`, and the goal in `{colors.ink-mute}` beside it.
 - **Application row**: applicant name, applied date in `{typography.body-numeric}`, status pill, and a `Review` secondary button — the whole row is the record, no detail page needed for triage.
-- **404 and error pages**: centred, max-width 560px, `{typography.display-lg}` title, one sentence of reason in `{typography.body-lg}`, and a row of secondary links back into the app.
+- **404 and error pages**: centred, max-width 560px, `{typography.display-lg}` title, one sentence of reason in `{typography.body-lg}`, and a row of secondary links back into the app. The same page serves `403 Not permitted` when a guard turns a signed-in visitor away: the title is the status and the reason names the route and the missing role (for example `This action is limited to administrator.`), so the page never blames the visitor for a permission they never had. A `401` never reaches this page for a browser: an anonymous visitor is redirected to the sign-in form instead, with the refused path carried in `?next=`.
 
 ## Do's and Don'ts
 

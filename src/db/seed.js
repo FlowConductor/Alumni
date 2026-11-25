@@ -9,11 +9,19 @@ const userFactory = require('./factories/user.factory');
 const donationFactory = require('./factories/donation.factory');
 const jobPostingFactory = require('./factories/jobPosting.factory');
 const applicationFactory = require('./factories/application.factory');
+const { hashPassword } = require('../lib/password');
 
 const USER_COUNT = Number(process.env.SEED_USERS || 20);
 const DONATION_COUNT = Number(process.env.SEED_DONATIONS || 40);
 const JOB_POSTING_COUNT = Number(process.env.SEED_JOB_POSTINGS || 15);
 const APPLICATION_COUNT = Number(process.env.SEED_APPLICATIONS || 20);
+
+// A single administrator so the guarded routes have someone to sign in as. The
+// password is local development only: change SEED_ADMIN_PASSWORD, or delete the
+// account before the portal is reachable from anywhere but a laptop.
+const ADMIN_USERNAME = process.env.SEED_ADMIN_USERNAME || 'admin';
+const ADMIN_EMAIL = process.env.SEED_ADMIN_EMAIL || 'admin@mis-alumni.local';
+const ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD || 'mis-alumni-admin';
 
 async function run() {
   const connection = await mysql.createConnection({
@@ -43,6 +51,12 @@ async function run() {
     await connection.query('INSERT INTO users (username, email) VALUES ?', [
       users.map((u) => [u.username, u.email]),
     ]);
+    // The bootstrap administrator is real, not fake: it needs a password and a role.
+    await connection.query(
+      'INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?)',
+      [ADMIN_USERNAME, ADMIN_EMAIL, hashPassword(ADMIN_PASSWORD), 'admin']
+    );
+
     const [userRows] = await connection.query('SELECT id FROM users');
     const userIds = userRows.map((row) => row.id);
 
@@ -72,7 +86,7 @@ async function run() {
       [applicationRows]
     );
 
-    console.log(`Seeded ${users.length} users.`);
+    console.log(`Seeded ${users.length} users plus the admin account "${ADMIN_USERNAME}".`);
     console.log(`Seeded ${donationRows.length} donations.`);
     console.log(`Seeded ${postingRows.length} job postings.`);
     console.log(`Seeded ${applicationRows.length} applications.`);

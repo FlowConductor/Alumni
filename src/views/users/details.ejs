@@ -53,12 +53,19 @@
     <div class="card">
       <h2 class="card__title">Actions</h2>
       <div class="card__footer">
-        <a class="btn btn--primary" href="/users/<%= user.id %>/edit">Edit record</a>
-        <form method="POST" action="/users/<%= user.id %>/delete"
-              onsubmit="return confirm('Delete this user? This cannot be undone.');">
-          <button class="btn btn--danger" type="submit">Delete</button>
-        </form>
+        <% if (canManage) { %>
+          <a class="btn btn--primary" href="/users/<%= user.id %>/edit">Edit record</a>
+        <% } %>
+        <% if (canDelete) { %>
+          <form method="POST" action="/users/<%= user.id %>/delete"
+                onsubmit="return confirm('Delete this user? This cannot be undone.');">
+            <button class="btn btn--danger" type="submit">Delete</button>
+          </form>
+        <% } %>
       </div>
+      <% if (!canManage) { %>
+        <p class="card__meta">Reading the directory is open to members. Editing is staff work.</p>
+      <% } %>
     </div>
 
     <div class="card">

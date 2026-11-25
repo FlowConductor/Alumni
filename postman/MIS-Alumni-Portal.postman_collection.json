@@ -1,19 +1,147 @@
 {
   "info": {
-    "name": "MIS Alumni Portal - Invalid Requests",
-    "description": "Invalid-request suite for the MIS Alumni Portal. Every request is expected to fail with a 4xx and a reason: validation errors (400), unknown records (404), conflicts (409), and the 404 Guardian for unmatched routes. Run the app first (docker compose up or npm start), then run this folder with the Collection Runner.",
+    "name": "MIS Alumni Portal - Authenticated Suite",
+    "description": "Runs against a seeded database (node src/db/seed.js). The directory and every write route require a session, so the run signs in first: the seeder creates one administrator from SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD (defaults admin@mis-alumni.local / mis-alumni-admin). Each run creates its own baseline user and posting, so the duplicate and conflict cases are deterministic and repeatable. The applications folder registers a throwaway alumnus, because creating an application is an alumni-only action, and that session is the one used for the refusal checks at the end.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
     {
       "key": "baseUrl",
       "value": "http://localhost:3000"
+    },
+    {
+      "key": "adminEmail",
+      "value": "admin@mis-alumni.local"
+    },
+    {
+      "key": "adminPassword",
+      "value": "mis-alumni-admin"
+    },
+    {
+      "key": "baselineUserId",
+      "value": ""
+    },
+    {
+      "key": "baselinePostingId",
+      "value": ""
+    },
+    {
+      "key": "baselineUsername",
+      "value": ""
     }
   ],
   "item": [
     {
-      "name": "Users - invalid",
+      "name": "Setup - sign in",
+      "description": "Must run first. Newman keeps the session cookie for the rest of the run.",
       "item": [
+        {
+          "name": "POST /login - administrator",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responds with 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"is signed in\", function () {",
+                  "  pm.expect(pm.cookies.has('mis.sid')).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "login"
+              ]
+            },
+            "description": "Redirects to /users, which newman follows; 200 means the sign-in succeeded.",
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "email",
+                  "value": "{{adminEmail}}"
+                },
+                {
+                  "key": "password",
+                  "value": "{{adminPassword}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "POST /api/users - create baseline",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responds with 201\", function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                  "  pm.collectionVariables.set('baselineUserId', pm.response.json().id);",
+                  "}",
+                  "if (pm.response.code === 201) {",
+                  "  pm.collectionVariables.set('baselineUsername', pm.response.json().username);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users"
+              ]
+            },
+            "description": "Creates the record the duplicate case below relies on.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"postman.baseline-{{$timestamp}}\",\n  \"email\": \"postman.baseline-{{$timestamp}}@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
         {
           "name": "POST /api/users - missing username",
           "event": [
@@ -47,7 +175,7 @@
                 "users"
               ]
             },
-            "description": "Both username and email are required.",
+            "description": "",
             "body": {
               "mode": "raw",
               "raw": "{}",
@@ -95,7 +223,7 @@
             "description": "",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"username\": \"postman.user\",\n  \"email\": \"not-an-email\"\n}",
+              "raw": "{\n  \"username\": \"postman.invalid\",\n  \"email\": \"not-an-email\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -107,6 +235,16 @@
         {
           "name": "POST /api/users - duplicate username",
           "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.request.body.update(JSON.stringify({ username: pm.collectionVariables.get('baselineUsername'),",
+                  "  email: 'postman.dup-' + Date.now() + '@example.com' }));"
+                ]
+              }
+            },
             {
               "listen": "test",
               "script": {
@@ -137,10 +275,10 @@
                 "users"
               ]
             },
-            "description": "Requires the seeded users (npm run seed).",
+            "description": "Reuses the username created above, so the conflict is real.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"username\": \"gizem.turan\",\n  \"email\": \"postman.dup@example.com\"\n}",
+              "raw": "{\n  \"username\": \"placeholder\",\n  \"email\": \"postman.dup-{{$timestamp}}@example.com\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -365,14 +503,96 @@
                 "1"
               ]
             },
-            "description": "User 1 has donations/applications, so the FK blocks the delete."
+            "description": "Seeded user 1 has donations and applications, so the foreign key blocks the delete."
+          }
+        },
+        {
+          "name": "GET /api/users - signed in",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responds with 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"never exposes a password hash\", function () {",
+                  "  pm.expect(JSON.stringify(pm.response.json())).to.not.include(\"password_hash\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users"
+              ]
+            },
+            "description": ""
           }
         }
       ]
     },
     {
-      "name": "Job postings - invalid",
+      "name": "Job postings",
       "item": [
+        {
+          "name": "POST /api/job-postings - create baseline",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responds with 201\", function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                  "  pm.collectionVariables.set('baselinePostingId', pm.response.json().id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/job-postings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "job-postings"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Postman baseline {{$timestamp}}\",\n  \"company\": \"Postman Co\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
         {
           "name": "POST /api/job-postings - missing title",
           "event": [
@@ -633,11 +853,140 @@
       ]
     },
     {
-      "name": "Applications - invalid",
+      "name": "Applications - as an alumnus",
+      "description": "Creating an application is an alumni-only action. This folder registers a fresh alumnus with a unique username (which signs them in) and keeps that session for the rest of the run.",
       "item": [
+        {
+          "name": "POST /register - throwaway alumnus",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responds with 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('session cookie is present', function () {",
+                  "  pm.expect(pm.cookies.has('mis.sid')).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "register"
+              ]
+            },
+            "description": "Registration signs the new account in and redirects to /users, which newman follows.",
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "username",
+                  "value": "postman.alumni-{{$timestamp}}"
+                },
+                {
+                  "key": "email",
+                  "value": "postman.alumni-{{$timestamp}}@example.com"
+                },
+                {
+                  "key": "password",
+                  "value": "postman123"
+                },
+                {
+                  "key": "password_confirm",
+                  "value": "postman123"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /api/applications - first application",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.request.body.update(JSON.stringify({",
+                  "  job_posting_id: Number(pm.collectionVariables.get('baselinePostingId')),",
+                  "  user_id: Number(pm.collectionVariables.get('baselineUserId'))",
+                  "}));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responds with 201\", function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/applications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "applications"
+              ]
+            },
+            "description": "The guard checks the caller is an alumnus; ownership of user_id is not checked yet.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"job_posting_id\": 0,\n  \"user_id\": 0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
         {
           "name": "POST /api/applications - duplicate application",
           "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.request.body.update(JSON.stringify({",
+                  "  job_posting_id: Number(pm.collectionVariables.get('baselinePostingId')),",
+                  "  user_id: Number(pm.collectionVariables.get('baselineUserId'))",
+                  "}));"
+                ]
+              }
+            },
             {
               "listen": "test",
               "script": {
@@ -668,10 +1017,10 @@
                 "applications"
               ]
             },
-            "description": "Requires the seeded applications.",
+            "description": "",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"job_posting_id\": 1,\n  \"user_id\": 4\n}",
+              "raw": "{\n  \"job_posting_id\": 0,\n  \"user_id\": 0\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -683,6 +1032,17 @@
         {
           "name": "POST /api/applications - missing user_id",
           "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.request.body.update(JSON.stringify({",
+                  "  job_posting_id: Number(pm.collectionVariables.get('baselinePostingId'))",
+                  "}));"
+                ]
+              }
+            },
             {
               "listen": "test",
               "script": {
@@ -716,7 +1076,7 @@
             "description": "",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"job_posting_id\": 1\n}",
+              "raw": "{\n  \"job_posting_id\": 0\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -728,8 +1088,85 @@
       ]
     },
     {
-      "name": "Guardians - unknown routes",
+      "name": "Guards - refusals and unknown routes",
+      "description": "The session here is the throwaway alumnus, so staff-only routes must refuse.",
       "item": [
+        {
+          "name": "GET /api/donations - forbidden for alumni",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responds with 403\", function () {",
+                  "  pm.response.to.have.status(403);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/donations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "donations"
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "POST /api/users - forbidden for alumni",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responds with 403\", function () {",
+                  "  pm.response.to.have.status(403);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"postman.refused\",\n  \"email\": \"postman.refused@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
         {
           "name": "GET /api/does-not-exist - 404 Guardian (JSON)",
           "event": [

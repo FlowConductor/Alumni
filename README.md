@@ -19,6 +19,7 @@ Companion documents: [brand.md](brand.md) (brand guidelines) · [DESIGN.md](DESI
 - [Project Structure (MVC)](#project-structure-mvc)
 - [Getting Started](#getting-started)
 - [Current Routes](#current-routes)
+- [Access Control (Route Guards)](#access-control-route-guards)
 - [Web Interface](#web-interface)
 - [Validation Rules](#validation-rules)
 - [Middleware & Error Handling](#middleware--error-handling)
@@ -153,7 +154,7 @@ MIS/
 ├── logs/                   Runtime logs (gitignored, created on first error)
 │   └── error.logs          One entry per error handled by the 5xx Guardian
 ├── postman/                Postman collection for manual and automated API checks
-│   └── MIS-Alumni-Portal.postman_collection.json   Invalid-request suite (19 requests)
+│   └── MIS-Alumni-Portal.postman_collection.json   Authenticated regression suite (27 requests)
 ├── public/                 Static assets served by express.static
 │   └── css/
 │       └── app.css         The design system: tokens and components from DESIGN.md
@@ -162,10 +163,12 @@ MIS/
     │   ├── logger.js       Request logger: prints "10:20:30 POST /api/users 201 18ms"
     │   ├── notFound.js     404 Guardian: unmatched routes -> JSON or the 404 page
     │   ├── errorHandler.js 5xx Guardian: terminal error handler, JSON or error page
-    │   └── errorLog.js     Appends error entries to logs/error.logs
+    │   ├── errorLog.js     Appends error entries to logs/error.logs
+    │   └── auth.js         Auth guards: requireAuth, requireRole(...roles), currentUser
     ├── lib/                Small shared helpers with no domain knowledge
     │   ├── password.js     scrypt hashing and verification (Node stdlib, no dependency)
-    │   └── session.js      Cookie name, secret, and flags for express-session
+    │   ├── session.js      Cookie name, secret, and flags for express-session
+    │   └── http.js         wantsJson() (HTML or JSON answer) and safeNext() (no open redirect)
     ├── controllers/        Controllers
     │   ├── auth.controller.js     Auth controller: register, sign in, sign out
     │   ├── user.controller.js      User controller: web CRUD (HTML pages + forms) for /users
@@ -177,7 +180,7 @@ MIS/
     │   └── apiApplication.controller.js  ApiApplication controller: JSON CRUD for /api/applications (direct + nested under users and job-postings)
     │   └── jobPosting.controller.js  JobPosting controller: web CRUD + apply form for /job-postings
     ├── routes/             Route definitions (mapped to controllers)
-    │   ├── auth.js         /register routes -> Auth controller
+    │   ├── auth.js         /register, /login, /logout routes -> Auth controller
     │   ├── general.js      / , /about , /hello , /hello/:name , /sum/... , /api/health
     │   ├── alumni.js       GET/POST /alumni (in-memory alumni model + seed data)
     │   ├── apiUsers.js     /api/users routes -> ApiUser controller
@@ -226,7 +229,7 @@ MIS/
     ├── db/                 Data layer tooling
     │   ├── database.js     Shared mysql2 connection pool (reads .env)
     │   ├── migrate.js      Migration runner (tracks applied files in `migrations`)
-    │   ├── seed.js         Seeder: 20 users, 40 donations, 15 postings, 20 applications
+    │   ├── seed.js         Seeder: bootstrap administrator + 20 users, 40 donations, 15 postings, 20 applications
     │   ├── migrations/     Hand-written SQL migrations 001-006
     │   └── factories/      Record factories used by the seeder
     └── docs/               API documentation
@@ -242,7 +245,7 @@ MIS/
 | View | `src/views/*.ejs` (web) and JSON responses (API) | EJS templates: `users/index.ejs` (list), `users/create.ejs` (create form), `users/details.ejs` (detail), `users/edit.ejs` (edit form), `error.ejs` (error pages); the ApiUser controller's JSON output is the API's view |
 | Controller | `src/controllers/user.controller.js` (web) and `src/controllers/apiUser.controller.js` (API) | Full CRUD functions: validate input, call the model, produce the response — HTML pages and redirects for the web, JSON + status codes for the API |
 | Routes | `src/routes/*.js` | Map URLs and HTTP methods to controller functions: `apiUsers.js` → ApiUser controller (`/api/users`), `users.js` → User controller (`/users`), `alumni.js` and `general.js` → inline handlers |
-| Middleware | `src/middleware/*.js` | Cross-cutting concerns outside MVC: request logging (`logger.js`), unmatched-route handling (`notFound.js`), terminal error handling and error logging (`errorHandler.js`, `errorLog.js`) |
+| Middleware | `src/middleware/*.js` | Cross-cutting concerns outside MVC: request logging (`logger.js`), access guards (`auth.js`), unmatched-route handling (`notFound.js`), terminal error handling and error logging (`errorHandler.js`, `errorLog.js`) |
 | Wiring | `server.js` | Creates the Express app, mounts the request logger, the route files (which map to controllers) at their base paths, serves Swagger UI, and closes the chain with the 404 and 5xx guardians |
 
 ### Request flow
@@ -324,15 +327,17 @@ MySQL runs as a Docker service (see `docker-compose.yml`), with the schema manag
    npm run migrate
    ```
 
-3. Seed fake data (truncates and inserts 20 users and 40 donations; configurable via `SEED_USERS` / `SEED_DONATIONS`):
+3. Seed fake data (truncates and inserts 20 users, 40 donations, 15 job postings, 20 applications; the counts are configurable through `SEED_USERS` / `SEED_DONATIONS`):
 
    ```bash
    npm run seed
    ```
 
+   The seeder also creates one bootstrap administrator so the guarded routes can be reached: `admin@mis-alumni.local` with the password `mis-alumni-admin` (both overridable via `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`, `SEED_ADMIN_USERNAME`). The password is hashed with scrypt like any other; these credentials are for local development only and must be changed before anything is deployed.
+
 With `docker compose up -d`, migrations run automatically before the app starts. To seed inside the Docker network, use `docker compose run --rm seed`.
 
-The User and Announcement models use this MySQL database; only the `/alumni` endpoints still use an in-memory store.
+The User, Announcement, Donation, Job Posting, and Application models use this MySQL database; only the `/alumni` endpoints still use an in-memory store.
 
 ### Usage
 
@@ -343,81 +348,122 @@ The intended end-state workflow is:
 3. Verified alumni can join the directory, sign up for events, apply as mentors, and donate to campaigns.
 4. **Staff** use the administrative CRM to track engagement and generate accreditation reports.
 
+Which pages a visitor may reach is decided by the [auth guards](#access-control-route-guards): the directory and the JSON API for users need a session, writes need staff or administrator rights, and deleting a user needs the administrator role. Sign in as the seeded administrator (`admin@mis-alumni.local` / `mis-alumni-admin`) to see the actions a regular alumnus does not get.
+
 ## Current Routes
 
-The backend's development server (Express) exposes the following starter routes (base URL: `http://localhost:3000`):
+The backend's development server (Express) exposes the following starter routes (base URL: `http://localhost:3000`). The **Access** column names the guard mounted on the route (see [Access Control](#access-control-route-guards)):
 
-| Method | Route | Description |
-|--------|-------|-------------|
-| GET    | `/`   | Home page (EJS view: `home.ejs`) — hero, module cards, and links into the app |
-| GET    | `/api/health` | Health check; returns JSON with `status`, `uptime` (seconds), and `timestamp` |
-| GET    | `/api-docs` | Swagger UI — interactive API documentation for all endpoints, both JSON API and web pages (spec in `src/docs/openapi.js`) |
-| GET    | `/users` | Web page listing all users (EJS view: `users/index.ejs`) with view/edit/delete actions |
-| GET    | `/users/new` | Create form page (EJS view: `users/create.ejs`); submits to `POST /users` |
-| GET    | `/users/{id}` | Web page for one user (EJS view: `users/details.ejs`); `404` error view if not found |
-| GET    | `/users/{id}/edit` | Edit form page prefilled with the user (EJS view: `users/edit.ejs`); submits to `POST /users/{id}` |
-| POST   | `/users` | Create a user from an HTML form (fields: `username`, `email`); redirects to `/users` |
-| POST   | `/users/{id}` | Update a user from an HTML form; redirects to `/users/{id}` |
-| POST   | `/users/{id}/delete` | Delete a user from an HTML form; redirects to `/users` |
-| GET    | `/api/announcements` | Returns the list of saved announcements (JSON; stored in the MySQL `announcements` table) |
-| POST   | `/api/announcements` | Creates an announcement. Request body: `title` and `content` (both required). Returns `201` with the created record |
-| GET    | `/api/announcements/{id}` | Returns a single announcement by id, or `404` |
-| PUT / PATCH | `/api/announcements/{id}` | Updates an announcement by id (partial updates allowed) |
-| DELETE | `/api/announcements/{id}` | Deletes an announcement by id and returns the removed record |
-| GET    | `/announcements` | Web page listing all announcements (EJS view: `announcements/index.ejs`) with view/edit/delete actions |
-| GET    | `/announcements/new` | Create form page (EJS view: `announcements/create.ejs`); submits to `POST /announcements` |
-| GET    | `/announcements/{id}` | Web page for one announcement (EJS view: `announcements/details.ejs`); `404` error view if not found |
-| GET    | `/announcements/{id}/edit` | Edit form page prefilled with the announcement (EJS view: `announcements/edit.ejs`) |
-| POST   | `/announcements` | Create an announcement from an HTML form; redirects to `/announcements` |
-| POST   | `/announcements/{id}` | Update an announcement from an HTML form; redirects to `/announcements/{id}` |
-| POST   | `/announcements/{id}/delete` | Delete an announcement from an HTML form; redirects to `/announcements` |
-| GET    | `/api/donations` | Returns all donations (JSON), each joined with the donor's username |
-| POST   | `/api/donations` | Creates a donation. Request body: `user_id` and `amount` (required), `currency`, `campaign`, `status` optional. Returns `201`; `404` if the user does not exist |
-| GET    | `/api/donations/{id}` | Returns a single donation by id, or `404` |
-| PUT / PATCH | `/api/donations/{id}` | Updates a donation by id (partial updates allowed) |
-| DELETE | `/api/donations/{id}` | Deletes a donation by id and returns the removed record |
-| GET    | `/api/users/{userId}/donations` | **Nested route:** donations made by one user |
-| GET    | `/api/job-postings` | Returns all job postings (JSON), with the poster's username when set |
-| POST   | `/api/job-postings` | Creates a job posting. Request body: `title` and `company` (required), `posted_by`, `description`, `location`, `status` optional. Returns `201`; `404` if `posted_by` does not exist |
-| GET    | `/api/job-postings/{id}` | Returns a single job posting by id, or `404` |
-| PUT / PATCH | `/api/job-postings/{id}` | Updates a job posting by id (partial updates allowed) |
-| DELETE | `/api/job-postings/{id}` | Deletes a job posting by id and returns the removed record |
-| GET    | `/api/users/{userId}/job-postings` | **Nested route:** job postings published by one user |
-| GET    | `/api/applications` | Returns all job applications (JSON), each joined with the applicant's username and the posting's title/company |
-| POST   | `/api/applications` | Applies to a job posting. Request body: `job_posting_id` and `user_id` (required), `cover_letter`, `status` optional. Returns `201`; `404` if the posting/user does not exist; `409` if the user already applied |
-| GET    | `/api/applications/{id}` | Returns a single application by id, or `404` |
-| PUT / PATCH | `/api/applications/{id}` | Updates an application by id (`status`, `cover_letter`) |
-| DELETE | `/api/applications/{id}` | Deletes an application by id and returns the removed record |
-| GET    | `/api/users/{userId}/applications` | **Nested route:** applications made by one user |
-| GET    | `/api/job-postings/{id}/applications` | **Nested route:** applications received by one job posting |
-| GET    | `/job-postings` | Web page listing all job postings (EJS view: `jobPostings/index.ejs`) with view/edit/delete actions |
-| GET    | `/job-postings/new` | Create form page (EJS view: `jobPostings/create.ejs`) |
-| GET    | `/job-postings/{id}` | Posting detail page with its applications and an apply form (EJS view: `jobPostings/details.ejs`) |
-| GET    | `/job-postings/{id}/edit` | Edit form page prefilled with the posting (EJS view: `jobPostings/edit.ejs`) |
-| POST   | `/job-postings` | Create a posting from an HTML form; redirects to `/job-postings` |
-| POST   | `/job-postings/{id}` | Update a posting from an HTML form; redirects to `/job-postings/{id}` |
-| POST   | `/job-postings/{id}/delete` | Delete a posting from an HTML form; `409` if it still has applications |
-| POST   | `/job-postings/{id}/apply` | Apply to a posting from the HTML form (fields: `user_id`, optional `cover_letter`); `409` if already applied |
-| GET    | `/api/users` | Returns the list of saved users (JSON) |
-| GET    | `/api/users/{id}` | Returns a single user by id, or `404` if not found |
-| DELETE | `/api/users/{id}` | Deletes the user with the given id and returns the removed record, or `404` if not found |
-| PUT / PATCH | `/api/users/{id}` | Updates a user by id. Request body: `username` and/or `email` (partial updates allowed). Returns the updated record, or `404` if the id does not exist |
-| POST   | `/api/users` | Creates a user. Request body: `username` and `email` (both required). Returns `201` with `{"username": "...", "email": "..."}`; duplicate username/email returns `409`. Users are stored in the MySQL `users` table |
-| GET    | `/login` | Sign-in form (EJS view: `auth/login.ejs`). A signed-in visitor is redirected to `/users` |
-| POST   | `/login` | Verifies the password against the stored scrypt hash, starts a session, redirects to `/users`. `400` for missing fields, `401` for an unknown email or a wrong password (same message for both) |
-| POST   | `/logout` | Destroys the session and clears the cookie, then redirects to `/`. POST only, so a link cannot end a session by accident |
-| GET    | `/register` | Registration form (EJS view: `auth/register.ejs`) — username, email, password, confirmation |
-| POST   | `/register` | Creates an account: validates the input, hashes the password with scrypt, stores the role `alumni`, then redirects to `/users?registered=<username>`. `400` with every failing rule on the form, `409` if the username or email is taken |
-| GET    | `/about` | About page (EJS view: `about.ejs`) — what the portal is, what is implemented, what is not |
-| GET    | `/alumni` | Returns the list of alumni records (JSON; in-memory store with seed data) |
-| POST   | `/alumni` | Creates an alumni record. Request body: `name` (required), `graduationYear` (integer, optional), `email` (optional). Returns `201` with the created record |
-| GET    | `/hello` | Returns `"Hello, World!"` |
-| GET    | `/hello/{name}` | Returns a personalized greeting — e.g. `GET /hello/senol` returns `"Hello, senol!"` |
-| GET    | `/sum/{number1}/{number2}` | Returns the sum as JSON — e.g. `GET /sum/2/3` returns `{"number1":2,"number2":3,"sum":5}` |
+| Method | Route | Access | Description |
+|--------|-------|--------|-------------|
+| GET    | `/`   | Public | Home page (EJS view: `home.ejs`) — hero, module cards, and links into the app |
+| GET | `/api/health` | Public | Health check; returns JSON with `status`, `uptime` (seconds), and `timestamp` |
+| GET | `/api-docs` | Public | Swagger UI — interactive API documentation for all endpoints, both JSON API and web pages (spec in `src/docs/openapi.js`) |
+| GET | `/users` | Signed in | Web page listing all users (EJS view: `users/index.ejs`) with view/edit/delete actions |
+| GET | `/users/new` | Staff or admin | Create form page (EJS view: `users/create.ejs`); submits to `POST /users` |
+| GET | `/users/{id}` | Signed in | Web page for one user (EJS view: `users/details.ejs`); `404` error view if not found |
+| GET | `/users/{id}/edit` | Staff or admin | Edit form page prefilled with the user (EJS view: `users/edit.ejs`); submits to `POST /users/{id}` |
+| POST | `/users` | Staff or admin | Create a user from an HTML form (fields: `username`, `email`); redirects to `/users` |
+| POST | `/users/{id}` | Staff or admin | Update a user from an HTML form; redirects to `/users/{id}` |
+| POST | `/users/{id}/delete` | Admin | Delete a user from an HTML form; redirects to `/users` |
+| GET | `/api/announcements` | Public | Returns the list of saved announcements (JSON; stored in the MySQL `announcements` table) |
+| POST | `/api/announcements` | Staff or admin | Creates an announcement. Request body: `title` and `content` (both required). Returns `201` with the created record |
+| GET | `/api/announcements/{id}` | Public | Returns a single announcement by id, or `404` |
+| PUT / PATCH | `/api/announcements/{id}` | Staff or admin | Updates an announcement by id (partial updates allowed) |
+| DELETE | `/api/announcements/{id}` | Staff or admin | Deletes an announcement by id and returns the removed record |
+| GET | `/announcements` | Public | Web page listing all announcements (EJS view: `announcements/index.ejs`) with view/edit/delete actions |
+| GET | `/announcements/new` | Staff or admin | Create form page (EJS view: `announcements/create.ejs`); submits to `POST /announcements` |
+| GET | `/announcements/{id}` | Public | Web page for one announcement (EJS view: `announcements/details.ejs`); `404` error view if not found |
+| GET | `/announcements/{id}/edit` | Staff or admin | Edit form page prefilled with the announcement (EJS view: `announcements/edit.ejs`) |
+| POST | `/announcements` | Staff or admin | Create an announcement from an HTML form; redirects to `/announcements` |
+| POST | `/announcements/{id}` | Staff or admin | Update an announcement from an HTML form; redirects to `/announcements/{id}` |
+| POST | `/announcements/{id}/delete` | Staff or admin | Delete an announcement from an HTML form; redirects to `/announcements` |
+| GET | `/api/donations` | Staff or admin | Returns all donations (JSON), each joined with the donor's username |
+| POST | `/api/donations` | Staff or admin | Creates a donation. Request body: `user_id` and `amount` (required), `currency`, `campaign`, `status` optional. Returns `201`; `404` if the user does not exist |
+| GET | `/api/donations/{id}` | Staff or admin | Returns a single donation by id, or `404` |
+| PUT / PATCH | `/api/donations/{id}` | Staff or admin | Updates a donation by id (partial updates allowed) |
+| DELETE | `/api/donations/{id}` | Staff or admin | Deletes a donation by id and returns the removed record |
+| GET | `/api/users/{userId}/donations` | Staff or admin | **Nested route:** donations made by one user |
+| GET | `/api/job-postings` | Public | Returns all job postings (JSON), with the poster's username when set |
+| POST | `/api/job-postings` | Staff or admin | Creates a job posting. Request body: `title` and `company` (required), `posted_by`, `description`, `location`, `status` optional. Returns `201`; `404` if `posted_by` does not exist |
+| GET | `/api/job-postings/{id}` | Public | Returns a single job posting by id, or `404` |
+| PUT / PATCH | `/api/job-postings/{id}` | Staff or admin | Updates a job posting by id (partial updates allowed) |
+| DELETE | `/api/job-postings/{id}` | Staff or admin | Deletes a job posting by id and returns the removed record |
+| GET | `/api/users/{userId}/job-postings` | Staff or admin | **Nested route:** job postings published by one user |
+| GET | `/api/applications` | Staff or admin | Returns all job applications (JSON), each joined with the applicant's username and the posting's title/company |
+| POST | `/api/applications` | Alumni | Applies to a job posting. Request body: `job_posting_id` and `user_id` (required), `cover_letter`, `status` optional. Returns `201`; `404` if the posting/user does not exist; `409` if the user already applied |
+| GET | `/api/applications/{id}` | Staff or admin | Returns a single application by id, or `404` |
+| PUT / PATCH | `/api/applications/{id}` | Staff or admin | Updates an application by id (`status`, `cover_letter`) |
+| DELETE | `/api/applications/{id}` | Staff or admin | Deletes an application by id and returns the removed record |
+| GET | `/api/users/{userId}/applications` | Staff or admin | **Nested route:** applications made by one user |
+| GET | `/api/job-postings/{id}/applications` | Staff or admin | **Nested route:** applications received by one job posting |
+| GET | `/job-postings` | Public | Web page listing all job postings (EJS view: `jobPostings/index.ejs`) with view/edit/delete actions |
+| GET | `/job-postings/new` | Staff or admin | Create form page (EJS view: `jobPostings/create.ejs`) |
+| GET | `/job-postings/{id}` | Public | Posting detail page with its applications and an apply form (EJS view: `jobPostings/details.ejs`) |
+| GET | `/job-postings/{id}/edit` | Staff or admin | Edit form page prefilled with the posting (EJS view: `jobPostings/edit.ejs`) |
+| POST | `/job-postings` | Staff or admin | Create a posting from an HTML form; redirects to `/job-postings` |
+| POST | `/job-postings/{id}` | Staff or admin | Update a posting from an HTML form; redirects to `/job-postings/{id}` |
+| POST | `/job-postings/{id}/delete` | Staff or admin | Delete a posting from an HTML form; `409` if it still has applications |
+| POST | `/job-postings/{id}/apply` | Alumni | Apply to a posting from the HTML form (fields: `user_id`, optional `cover_letter`); `409` if already applied |
+| GET | `/api/users` | Signed in | Returns the list of saved users (JSON) |
+| GET | `/api/users/{id}` | Signed in | Returns a single user by id, or `404` if not found |
+| DELETE | `/api/users/{id}` | Admin | Deletes the user with the given id and returns the removed record, or `404` if not found |
+| PUT / PATCH | `/api/users/{id}` | Staff or admin | Updates a user by id. Request body: `username` and/or `email` (partial updates allowed). Returns the updated record, or `404` if the id does not exist |
+| POST | `/api/users` | Staff or admin | Creates a user. Request body: `username` and `email` (both required). Returns `201` with the created record — `{"id": 21, "username": "...", "email": "...", "role": "alumni"}` — so a client can follow up with `/api/users/{id}`; duplicate username/email returns `409`. Users are stored in the MySQL `users` table |
+| GET | `/login` | Public | Sign-in form (EJS view: `auth/login.ejs`). A signed-in visitor is redirected to `/users` |
+| POST | `/login` | Public | Verifies the password against the stored scrypt hash, starts a session, then redirects to `next` (the page the guard turned away) or to `/users`. `400` for missing fields, `401` for an unknown email or a wrong password (same message for both) |
+| POST | `/logout` | Public | Destroys the session and clears the cookie, then redirects to `/`. POST only, so a link cannot end a session by accident |
+| GET | `/register` | Public | Registration form (EJS view: `auth/register.ejs`) — username, email, password, confirmation |
+| POST | `/register` | Public | Creates an account: validates the input, hashes the password with scrypt, stores the role `alumni`, then redirects to `/users?registered=<username>`. `400` with every failing rule on the form, `409` if the username or email is taken |
+| GET | `/about` | Public | About page (EJS view: `about.ejs`) — what the portal is, what is implemented, what is not |
+| GET | `/alumni` | Public | Returns the list of alumni records (JSON; in-memory store with seed data) |
+| POST | `/alumni` | Public | Creates an alumni record. Request body: `name` (required), `graduationYear` (integer, optional), `email` (optional). Returns `201` with the created record |
+| GET | `/hello` | Public | Returns `"Hello, World!"` |
+| GET | `/hello/{name}` | Public | Returns a personalized greeting — e.g. `GET /hello/senol` returns `"Hello, senol!"` |
+| GET | `/sum/{number1}/{number2}` | Public | Returns the sum as JSON — e.g. `GET /sum/2/3` returns `{"number1":2,"number2":3,"sum":5}` |
 
 Run the server with `npm start`. Interactive API documentation for all endpoints is available via Swagger UI at [http://localhost:3000/api-docs](http://localhost:3000/api-docs); the OpenAPI spec itself lives in `src/docs/openapi.js`. The `/alumni` endpoints are the first endpoints of the Alumni Directory & Profile Management module; the remaining routes are temporary and used to verify the server is running. They will be extended and reorganized as the modules described in [Key Features](#key-features) are implemented.
 
 Any request that matches none of the routes above is answered by the [404 Guardian](#2-404-guardian-notfoundjs) with a `404` and a reason.
+
+## Access Control (Route Guards)
+
+Route guards live in `src/middleware/auth.js` and implement the role matrix in [ddd.md](ddd.md) section 8. Two guards are exported:
+
+| Guard | Behaviour |
+|-------|-----------|
+| `requireAuth` | Any signed-in user, whatever the role |
+| `requireRole(...roles)` | A signed-in user whose `role` is in the list; passing `requireRole('staff', 'admin')` accepts both staff and administrators |
+
+Roles are stored in `users.role` and copied into the session at sign-in, so a role change takes effect on the next sign-in. The guard matrix as mounted today:
+
+| Area | Public | Signed in | Alumni | Staff or admin | Admin |
+|------|--------|-----------|--------|----------------|-------|
+| Home, about, health, `/api-docs`, `/hello`, `/sum`, `/alumni` | yes | — | — | — | — |
+| Announcement reads (`/announcements`, `/announcements/{id}`, `GET /api/announcements*`) | yes | — | — | — | — |
+| Job posting reads (`/job-postings`, `/job-postings/{id}`, `GET /api/job-postings*`) | yes | — | — | — | — |
+| Alumni directory (`/users`, `/users/{id}`, `GET /api/users`, `GET /api/users/{id}`) | — | yes | — | yes | yes |
+| Announcement writes | — | — | — | yes | yes |
+| Job posting writes | — | — | — | yes | yes |
+| User writes (`POST`/`PUT`/`PATCH /api/users*`, `/users/new`, `/users/{id}/edit`) | — | — | — | yes | yes |
+| Donations (all of `/api/donations*`, including the nested per-user route) | — | — | — | yes | yes |
+| Applications: read and status changes | — | — | — | yes | yes |
+| Applying to a posting (`POST /job-postings/{id}/apply`, `POST /api/applications`) | — | — | yes | — | — |
+| Deleting a user (`DELETE /api/users/{id}`, `POST /users/{id}/delete`) | — | — | — | — | yes |
+
+Two known gaps, documented rather than hidden: job postings have no company owner column yet, so employers cannot create or edit a posting (only staff and administrators can); and `POST /api/applications` does not check that `user_id` matches the caller — an alumnus can currently apply on someone else's behalf.
+
+How a refusal looks depends on the surface:
+
+| Request | Answer |
+|---------|--------|
+| HTML `GET` without a session | `302` to `/login?next=<original path>`, and the sign-in form returns the visitor there. Open redirects are blocked: `//host` and absolute URLs fall back to `/users` |
+| HTML `POST` without a session | `302` to `/login` — a form body cannot be replayed after a redirect, so the target is dropped rather than half-preserved |
+| HTML with a session but the wrong role | `403` error page ("Not permitted") carrying the reason, e.g. `This action is limited to administrator.` |
+| JSON API without a session | `401` `{"error": "Authentication required", "reason": "...", "method": "POST", "path": "/api/users"}` |
+| JSON API with the wrong role | `403` `{"error": "Not permitted", "reason": "limited to department staff or administrator", "method": "DELETE", "path": "/api/users/1"}` |
+
+The guards answer API requests as JSON and page requests as HTML/redirects by inspecting the request path: anything under `/api/` (checked on `req.originalUrl`, so the check also works inside a mounted router) is treated as an API call. Views read `currentUser`, `canManage` (staff or admin), `canDelete` (admin) and `canApply` (alumni) from `res.locals`, so a page never renders an action the caller cannot perform.
 
 ## Web Interface
 
@@ -500,7 +546,7 @@ Every failing rule is reported at once, the form echoes back the username and em
 
 ## Middleware & Error Handling
 
-Three middlewares wrap every request. They live in `src/middleware/` and are mounted in `server.js`: the logger first, then the routes, then the two guardians.
+Three middlewares wrap every request, and a fourth guards the protected routes. They live in `src/middleware/` and are mounted in `server.js`: the logger first, then the routes (each carrying its own guard), then the two guardians.
 
 ### 1. Request logger (`logger.js`)
 
@@ -548,39 +594,30 @@ Error: read ECONNRESET
 
 `logs/` is gitignored and created on the first error, so a fresh clone needs no setup.
 
+### 4. Auth guards (`auth.js`)
+
+`requireAuth` and `requireRole(...roles)` sit in front of the routes that need a session; the matrix is in [Access Control](#access-control-route-guards). Both read the signed-in user from `req.session.user` and refuse with `302 /login?next=…` or `403` for pages and `401`/`403` JSON for the API. The path test that decides between HTML and JSON lives in `src/lib/http.js` together with `safeNext()`, the helper that keeps `?next=` from turning into an open redirect.
+
 ## Testing Invalid Requests (Postman)
 
-`postman/MIS-Alumni-Portal.postman_collection.json` contains 19 invalid requests in four folders — Users, Job postings, Applications, Guardians. Every request asserts its expected status, so the collection doubles as a regression suite:
+`postman/MIS-Alumni-Portal.postman_collection.json` is an authenticated regression suite: 27 requests in five folders — **Setup**, **Users**, **Job postings**, **Applications**, **Guards**. It signs in as an administrator, then exercises validation, CRUD edge cases, the guards, and one full alumni flow. Every request asserts its expected status, and the setup requests store ids in collection variables so the later requests can reuse them.
 
 ```bash
-npx newman run postman/MIS-Alumni-Portal.postman_collection.json --env-var baseUrl=http://localhost:3000
+npx --yes newman@6 run postman/MIS-Alumni-Portal.postman_collection.json \
+  --env-var baseUrl=http://localhost:3001
 ```
 
-In the Postman desktop app: **Import** the collection file, set the `baseUrl` variable, then **Run collection**.
+In the Postman desktop app: **Import** the collection file, set `baseUrl`, then **Run collection**. The suite needs a seeded database and these collection variables, which default to the seeded administrator: `adminEmail` (`admin@mis-alumni.local`) and `adminPassword` (`mis-alumni-admin`). Change both before running against anything that is not a local development database.
 
-Verified results (19 requests, 19 assertions, 0 failures):
+Confirmed results on `node server.js` with `PORT=3001`: **27 requests, 30 assertions, 0 failures**.
 
-| Request | Status | Response |
-|---------|--------|----------|
-| `POST /api/users` with `{}` | 400 | `Field "username" is required.` |
-| `POST /api/users` with `email: "not-an-email"` | 400 | `Field "email" must be a valid email address.` |
-| `POST /api/users` with a duplicate username | 409 | `A user with that username or email already exists.` |
-| `POST /api/users` with malformed JSON | 400 | `Request body is not valid JSON.` |
-| `GET /api/users/abc` | 400 | `Route parameter "id" must be a positive integer.` |
-| `GET /api/users/999999` | 404 | `User with id 999999 not found.` |
-| `PUT /api/users/999999` | 404 | `User with id 999999 not found.` |
-| `DELETE /api/users/999999` | 404 | `User with id 999999 not found.` |
-| `DELETE /api/users/1` (has donations) | 409 | `User with id 1 still has donations or job applications and cannot be deleted.` |
-| `POST /api/job-postings` without `title` | 400 | `Field "title" is required.` |
-| `POST /api/job-postings` with a 121-character `title` | 400 | `Field "title" must be at most 120 characters.` |
-| `POST /api/job-postings` without `company` | 400 | `Field "company" is required.` |
-| `POST /api/job-postings` with `posted_by: 999999` | 404 | `User with id 999999 not found.` |
-| `POST /api/job-postings` with `status: "archived"` | 400 | `Field "status" must be one of: open, closed.` |
-| `GET /api/job-postings/abc` | 400 | `Route parameter "id" must be a positive integer.` |
-| `POST /api/applications` duplicate | 409 | `This user has already applied to this job posting.` |
-| `POST /api/applications` without `user_id` | 400 | `Field "user_id" must be a positive integer.` |
-| `GET /api/does-not-exist` | 404 | 404 Guardian, JSON with a reason |
-| `GET /no-such-page` | 404 | 404 Guardian, generic `404.ejs` page |
+| Folder | What it covers |
+|--------|----------------|
+| Setup | `POST /login` as the administrator, asserting `200` and a session cookie |
+| Users | Create a baseline user, then `{}` (400), invalid email (400), duplicate username (409), malformed JSON (400), non-numeric id (400), unknown id (404) on get/update/delete, `DELETE /api/users/1` blocked by the foreign key (409), and a list read that must never return `password_hash` |
+| Job postings | Create a baseline posting, then missing `title` (400), 121-character `title` (400), missing `company` (400), unknown `posted_by` (404), invalid `status` (400), non-numeric id (400) |
+| Applications | Register a throwaway alumnus (which signs them in), apply once (201), apply again (409), omit `user_id` (400) |
+| Guards | `GET /api/donations` as an alumnus (403), `POST /api/users` as an alumnus (403), an unknown API path (404 JSON), an unknown page (404 HTML) |
 
 A `title` of exactly 120 characters is accepted (`201`), so the boundary is inclusive.
 
@@ -666,6 +703,17 @@ Contributions are welcome. Since the project has no code yet, the most valuable 
 **TBD** — the license for this project has not been chosen yet. Until a license is decided and a `LICENSE` file is added, all rights are reserved.
 
 ## Changelog
+
+### 2026-11-25 — Auth middleware and guarded routes
+
+- `src/middleware/auth.js` adds `requireAuth` and `requireRole(...roles)`, enforcing the role matrix from `ddd.md` section 8 on all ten route files.
+- Pages answer a missing session with `302 /login?next=<path>` and a missing role with a `403` error page; the JSON API answers `401` and `403` with `{error, reason, method, path}`.
+- `src/lib/http.js` centralises the HTML-versus-JSON decision (`wantsJson`, tested on `req.originalUrl` so it also works inside a mounted router) and `safeNext()`; the 404 and 5xx guardians now use it too.
+- Sign-in honours `?next=`, and `POST /register` signs the new alumnus in directly.
+- Views are role-aware through `currentUser`, `canManage`, `canDelete`, and `canApply` from `res.locals`, so no page offers an action the caller cannot perform.
+- The seeder creates a bootstrap administrator (`SEED_ADMIN_*`) so guarded routes are reachable on a fresh database.
+- `POST /api/users` now returns the created record with its `id` and `role`, so a client can address it afterwards.
+- The Postman collection became an authenticated suite: 27 requests in five folders, 30 assertions, 0 failures on a fresh run.
 
 ### 2026-11-11 — Sign in and sign out
 

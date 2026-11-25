@@ -11,7 +11,9 @@
     </p>
   </div>
   <div class="page-header__actions">
-    <a class="btn btn--primary" href="/users/new">New user</a>
+    <% if (canManage) { %>
+      <a class="btn btn--primary" href="/users/new">New user</a>
+    <% } %>
   </div>
 </div>
 
@@ -50,11 +52,15 @@
             <td>
               <div class="actions">
                 <a class="btn btn--link" href="/users/<%= user.id %>">View</a>
-                <a class="btn btn--link" href="/users/<%= user.id %>/edit">Edit</a>
-                <form method="POST" action="/users/<%= user.id %>/delete"
-                      onsubmit="return confirm('Delete this user? This cannot be undone.');">
-                  <button class="btn btn--link btn--link-danger" type="submit">Delete</button>
-                </form>
+                <% if (canManage) { %>
+                  <a class="btn btn--link" href="/users/<%= user.id %>/edit">Edit</a>
+                <% } %>
+                <% if (canDelete) { %>
+                  <form method="POST" action="/users/<%= user.id %>/delete"
+                        onsubmit="return confirm('Delete this user? This cannot be undone.');">
+                    <button class="btn btn--link btn--link-danger" type="submit">Delete</button>
+                  </form>
+                <% } %>
               </div>
             </td>
           </tr>

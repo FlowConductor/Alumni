@@ -3,12 +3,7 @@
 // JSON clients (anything under /api, or an explicit JSON Accept header) get a
 // JSON body; browsers get the generic 404 page (src/views/404.ejs).
 
-function wantsJson(req) {
-  if (req.path === '/api' || req.path.startsWith('/api/')) {
-    return true;
-  }
-  return req.accepts(['html', 'json']) === 'json';
-}
+const { wantsJson } = require('../lib/http');
 
 function notFoundHandler(req, res) {
   const reason = `No route matches ${req.method} ${req.originalUrl}.`;

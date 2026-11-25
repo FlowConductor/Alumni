@@ -244,7 +244,7 @@ Enforced in `src/controllers/apiJobPosting.controller.js` (JSON API), `src/contr
 
 ## 8. User Roles and Access Control
 
-Status: **partly implemented.** The `role` column exists (migration 007), self-service registration always writes `alumni` with an scrypt password hash, and sign-in/sign-out now work with a server-side session. What is missing is **enforcement**: there is no authorization middleware, so every route stays open and no capability below is checked. The matrix is the target for the next step.
+Status: **enforced on every route.** The `role` column exists (migration 007), registration always writes `alumni` with a scrypt password hash, sign-in and sign-out run on a server-side session, and `src/middleware/auth.js` (`requireAuth`, `requireRole(...roles)`) now applies the matrix below to all ten route files. The README section [Access Control (Route Guards)](README.md#access-control-route-guards) lists the guard mounted on every route and the exact `401`/`403` bodies. Two capability gaps remain and are noted under the implementation plan.
 
 ### The four roles
 
@@ -287,7 +287,7 @@ Three clarifications:
 - An account always has **exactly one** Role, and a new account always starts as `alumni`. There is no unprivileged or anonymous role inside the model: an unauthenticated visitor is a Guest (section 1) and gets read-only pages.
 - Only an `admin` assigns or changes a Role. An account can never change its own Role, which removes self-elevation as an attack path.
 - The last remaining `admin` cannot be demoted or deleted: the department must always keep one administrator.
-- Role checks belong in the controller layer, before the model is called, and must behave identically on the HTML and JSON surfaces — a role that is refused on a page is refused on the API.
+- Role checks belong in the middleware layer, before the controller and therefore before the model is called, and behave identically on the HTML and JSON surfaces — a role that is refused on a page is refused on the API. Middleware rather than controller code keeps the check impossible to forget when a new route is added.
 - A refusal is `403` with the same `{ error, reason, method, path }` shape as the other failures, so the 5xx Guardian and the clients need no special case.
 - Deletion stays platform-wide `admin`-only, consistent with the foreign-key restrictions in section 5: donations and applications already prevent most accidental deletions.
 
@@ -296,5 +296,6 @@ Three clarifications:
 1. ~~Migration adding the `role` column (section 4)~~ — done: `007_add_auth_fields_to_users.sql`, `NOT NULL DEFAULT 'alumni'`.
 2. ~~Extend the User model to select and map `role`~~ — done for reads; writing a Role is still admin-only work that waits for step 4.
 3. ~~Add session authentication on top of `password_hash`~~ — done: `POST /login` starts a session (crypto-signed cookie, eight hours, `HttpOnly`, `SameSite=Lax`), `POST /logout` destroys it, and the session carries only `id`, `username`, `role`.
-4. Add a `requireRole(...roles)` middleware next to the logger and the guardians, then apply it to the write routes (`POST`, `PUT`, `PATCH`, `DELETE`).
-5. Add a role column and a role selector (admin only) to the web views, and a `role` field to the `User` and `UserInput` schemas in `src/docs/openapi.js`.
+4. ~~Add a `requireRole(...roles)` middleware next to the logger and the guardians, then apply it to the write routes (`POST`, `PUT`, `PATCH`, `DELETE`)~~ — done: `src/middleware/auth.js` exports `requireAuth`, `requireRole(...roles)`, and `currentUser`, and every route file mounts a guard. Reads of the directory and of `/api/users` need a session; writes need `staff` or `admin`; deleting a user needs `admin`; applying to a posting needs `alumni`. Pages answer `302 /login?next=…` or a `403` page, the API answers `401`/`403` JSON.
+5. Add a role selector (admin only) to the web views, and a writable `role` field to the `UserInput` schema in `src/docs/openapi.js`. The `User` schema already carries `role` as read-only.
+6. Close two enforcement gaps that the current data model cannot express: job postings have no company owner column, so `employer` writes stay refused even though the matrix allows "own company only"; and `POST /api/applications` accepts any `user_id`, so an alumnus can apply on someone else's behalf instead of only for themselves.

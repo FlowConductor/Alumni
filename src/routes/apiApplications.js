@@ -1,16 +1,21 @@
-// API routes for job applications — maps /api/applications endpoints
-// to the ApiApplication controller (direct routes).
+// API routes for job applications.
+//   alumni        may create an application (apply)
+//   staff / admin may read every application, change a status, or remove one
 
 const express = require('express');
 const apiApplicationController = require('../controllers/apiApplication.controller');
+const { requireRole } = require('../middleware/auth');
 
 const router = express.Router();
 
-router.get('/', apiApplicationController.getAll);
-router.post('/', apiApplicationController.create);
-router.get('/:id', apiApplicationController.getById);
-router.put('/:id', apiApplicationController.update);
-router.patch('/:id', apiApplicationController.update);
-router.delete('/:id', apiApplicationController.remove);
+const STAFF = ['staff', 'admin'];
+
+router.get('/', requireRole(...STAFF), apiApplicationController.getAll);
+router.get('/:id', requireRole(...STAFF), apiApplicationController.getById);
+
+router.post('/', requireRole('alumni'), apiApplicationController.create);
+router.put('/:id', requireRole(...STAFF), apiApplicationController.update);
+router.patch('/:id', requireRole(...STAFF), apiApplicationController.update);
+router.delete('/:id', requireRole(...STAFF), apiApplicationController.remove);
 
 module.exports = router;

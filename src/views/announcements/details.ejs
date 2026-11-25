@@ -39,14 +39,18 @@
     <div class="card">
       <h2 class="card__title">Actions</h2>
       <div class="card__footer">
-        <a class="btn btn--primary" href="/announcements/<%= announcement.id %>/edit">Edit</a>
+        <% if (canManage) { %>
+          <a class="btn btn--primary" href="/announcements/<%= announcement.id %>/edit">Edit</a>
+        <% } %>
         <a class="btn btn--secondary" href="/announcements">All announcements</a>
       </div>
       <div class="card__footer">
-        <form method="POST" action="/announcements/<%= announcement.id %>/delete"
-              onsubmit="return confirm('Delete this announcement? This cannot be undone.');">
-          <button class="btn btn--danger btn--small" type="submit">Delete</button>
-        </form>
+        <% if (canManage) { %>
+          <form method="POST" action="/announcements/<%= announcement.id %>/delete"
+                onsubmit="return confirm('Delete this announcement? This cannot be undone.');">
+            <button class="btn btn--danger btn--small" type="submit">Delete</button>
+          </form>
+        <% } %>
         <a class="btn btn--link" href="/api/announcements/<%= announcement.id %>">JSON record</a>
       </div>
     </div>
