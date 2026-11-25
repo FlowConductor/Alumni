@@ -1,0 +1,197 @@
+<%- include('../partials/head', { title: 'My profile' }) %>
+<%- include('../partials/nav', { active: 'me' }) %>
+
+<% if (notice) { %>
+  <div class="alert alert--success" role="status"><%= notice %></div>
+<% } %>
+<% if (error) { %>
+  <div class="alert alert--danger" role="alert"><%= error %></div>
+<% } %>
+
+<div class="profile-header">
+  <div class="avatar" aria-hidden="true"><%= initials(user.username) %></div>
+  <div class="profile-header__text">
+    <span class="eyebrow">My profile</span>
+    <h1><%= user.username %></h1>
+    <p>
+      Record #<%= user.id %> · <a href="mailto:<%= user.email %>"><%= user.email %></a> ·
+      <span class="pill pill--<%= user.role %>"><%= user.role %></span>
+    </p>
+  </div>
+</div>
+
+<div class="detail-grid">
+  <div class="detail-main">
+    <div class="card">
+      <h2 class="card__title">Identity</h2>
+      <dl class="definition-list">
+        <div>
+          <dt>Username</dt>
+          <dd><%= user.username %></dd>
+        </div>
+        <div>
+          <dt>Email</dt>
+          <dd><a href="mailto:<%= user.email %>"><%= user.email %></a></dd>
+        </div>
+        <div>
+          <dt>Role</dt>
+          <dd>
+            <span class="pill pill--<%= user.role %>"><%= user.role %></span>
+            <span class="card__meta">A role is assigned by an administrator.</span>
+          </dd>
+        </div>
+        <div>
+          <dt>Record id</dt>
+          <dd><%= user.id %></dd>
+        </div>
+      </dl>
+    </div>
+
+    <div class="card">
+      <div class="section-head">
+        <h2>My applications<span class="count-badge"><%= applications.length %></span></h2>
+        <a class="section-head__meta" href="/job-postings">Browse postings</a>
+      </div>
+      <% if (applications.length === 0) { %>
+        <p class="card__meta">You have not applied to a posting yet.</p>
+      <% } else { %>
+        <div class="table-wrap">
+          <table class="data">
+            <thead>
+              <tr>
+                <th scope="col">Id</th>
+                <th scope="col">Posting</th>
+                <th scope="col">Company</th>
+                <th scope="col">Applied</th>
+                <th scope="col">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% applications.forEach((application) => { %>
+                <tr>
+                  <td class="num"><%= application.id %></td>
+                  <td><a href="/job-postings/<%= application.jobPostingId %>"><%= application.jobTitle %></a></td>
+                  <td><%= application.jobCompany %></td>
+                  <td class="num"><%= formatDate(application.createdAt) %></td>
+                  <td><span class="pill pill--<%= application.status %>"><%= application.status %></span></td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+    </div>
+
+    <div class="card">
+      <div class="section-head">
+        <h2>My donations<span class="count-badge"><%= donations.length %></span></h2>
+        <span class="section-head__meta">
+          <%= donationsTotal.toLocaleString('en-US') %> in total, all currencies summed
+        </span>
+      </div>
+      <% if (donations.length === 0) { %>
+        <p class="card__meta">
+          No donations on record. The Fundraising module is not built yet, so gifts are booked by
+          the secretariat through the admin panel.
+        </p>
+      <% } else { %>
+        <div class="table-wrap">
+          <table class="data">
+            <thead>
+              <tr>
+                <th scope="col">Id</th>
+                <th scope="col">Amount</th>
+                <th scope="col">Campaign</th>
+                <th scope="col">Recorded</th>
+                <th scope="col">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% donations.forEach((donation) => { %>
+                <tr>
+                  <td class="num"><%= donation.id %></td>
+                  <td class="num"><%= donation.amount.toLocaleString('en-US') %> <%= donation.currency %></td>
+                  <td><%= donation.campaign || '—' %></td>
+                  <td class="num"><%= formatDate(donation.donatedAt) %></td>
+                  <td>
+                    <span class="pill pill--<%= donation.status === 'completed' ? 'accepted' : donation.status %>"><%= donation.status %></span>
+                  </td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+    </div>
+
+    <% if (postings.length > 0) { %>
+      <div class="card">
+        <div class="section-head">
+          <h2>Postings I published<span class="count-badge"><%= postings.length %></span></h2>
+        </div>
+        <div class="table-wrap">
+          <table class="data">
+            <thead>
+              <tr>
+                <th scope="col">Id</th>
+                <th scope="col">Title</th>
+                <th scope="col">Company</th>
+                <th scope="col">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% postings.forEach((posting) => { %>
+                <tr>
+                  <td class="num"><%= posting.id %></td>
+                  <td><a href="/job-postings/<%= posting.id %>"><%= posting.title %></a></td>
+                  <td><%= posting.company %></td>
+                  <td><span class="pill pill--<%= posting.status %>"><%= posting.status %></span></td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    <% } %>
+  </div>
+
+  <aside class="detail-side">
+    <div class="card">
+      <h2 class="card__title">Actions</h2>
+      <div class="card__footer">
+        <a class="btn btn--primary" href="/me/edit">Edit my record</a>
+        <a class="btn btn--secondary" href="/users/<%= user.id %>">Public view</a>
+      </div>
+      <% if (canApply) { %>
+        <p class="card__meta">Alumni can apply to any open posting from its detail page.</p>
+      <% } %>
+      <% if (canManage) { %>
+        <p class="card__meta"><a href="/users">Manage the directory</a> or open the admin panel from the menu.</p>
+      <% } %>
+    </div>
+
+    <div class="card">
+      <h2 class="card__title">My records as JSON</h2>
+      <dl class="definition-list">
+        <div>
+          <dt>Account</dt>
+          <dd><a href="/api/users/<%= user.id %>">/api/users/<%= user.id %></a></dd>
+        </div>
+        <div>
+          <dt>Applications</dt>
+          <dd><a href="/api/users/<%= user.id %>/applications">/api/users/<%= user.id %>/applications</a></dd>
+        </div>
+        <div>
+          <dt>Donations</dt>
+          <dd><a href="/api/users/<%= user.id %>/donations">/api/users/<%= user.id %>/donations</a></dd>
+        </div>
+      </dl>
+      <p class="card__meta">
+        These JSON routes are limited to department staff and administrators; this page is the
+        member's own view of the same records.
+      </p>
+    </div>
+  </aside>
+</div>
+
+<%- include('../partials/footer') %>

@@ -19,6 +19,7 @@ Companion documents: [brand.md](brand.md) (brand guidelines) · [DESIGN.md](DESI
 - [Project Structure (MVC)](#project-structure-mvc)
 - [Getting Started](#getting-started)
 - [Current Routes](#current-routes)
+- [Authentication](#authentication)
 - [Access Control (Route Guards)](#access-control-route-guards)
 - [Admin Panel](#admin-panel)
 - [Web Interface](#web-interface)
@@ -173,6 +174,7 @@ MIS/
     │   └── navigation.js   Role-driven menu model: which items a visitor sees
     ├── controllers/        Controllers
     │   ├── auth.controller.js     Auth controller: register, sign in, sign out
+    │   ├── me.controller.js       Me controller: the member's own pages (/me)
     │   ├── user.controller.js      User controller: web CRUD (HTML pages + forms) for /users
     │   ├── apiUser.controller.js   ApiUser controller: JSON CRUD for /api/users
     │   ├── announcement.controller.js    Announcement controller: web CRUD (HTML pages + forms) for /announcements
@@ -195,7 +197,8 @@ MIS/
     │   ├── apiApplications.js     /api/applications routes -> ApiApplication controller (direct)
     │   ├── apiJobPostingResources.js   Nested routes under /api/job-postings (applications per posting)
     │   ├── jobPostings.js       /job-postings routes -> JobPosting controller (web UI)
-    │   └── admin.js             /admin routes -> Admin controller, behind requireRole('admin')
+    │   ├── admin.js             /admin routes -> Admin controller, behind requireRole('admin')
+    │   └── me.js                /me routes -> Me controller, behind requireAuth
     │   ├── announcements.js      /announcements routes -> Announcement controller
     ├── models/             Models
     │   ├── user.model.js      User model: create, findAll, findById, update, remove (CRUD) on the MySQL users table
@@ -230,6 +233,9 @@ MIS/
     │       ├── create.ejs         Create form page (GET /job-postings/new)
     │       ├── details.ejs        Posting detail page with applications + apply form (GET /job-postings/:id)
     │       └── edit.ejs           Edit form page (GET /job-postings/:id/edit)
+    │   ├── me/
+    │       ├── profile.ejs       The member's own page: record, applications, donations (GET /me)
+    │       └── edit.ejs          Edit form for own username and email (GET /me/edit)
     │   └── admin/
     │       ├── _tabs.ejs         Panel navigation shared by the four admin pages
     │       ├── overview.ejs      Dashboard: counts, accounts by role, latest rows (GET /admin)
@@ -434,6 +440,9 @@ The backend's development server (Express) exposes the following starter routes 
 | GET | `/login` | Public | Sign-in form (EJS view: `auth/login.ejs`). A signed-in visitor is redirected to `/users` |
 | POST | `/login` | Public | Verifies the password against the stored scrypt hash, starts a session, then redirects to `next` (the page the guard turned away) or to `/users`. `400` for missing fields, `401` for an unknown email or a wrong password (same message for both) |
 | POST | `/logout` | Public | Destroys the session and clears the cookie, then redirects to `/`. POST only, so a link cannot end a session by accident |
+| GET | `/me` | Signed in | The member's own page (EJS view: `me/profile.ejs`) — record, applications, donations, postings published; session-only, no id in the URL |
+| GET | `/me/edit` | Signed in | Edit form for the member's own username and email (EJS view: `me/edit.ejs`) |
+| POST | `/me` | Signed in | Saves those two fields, refreshes the session, redirects to `/me?notice=...`; `400` on invalid input, `409` on a duplicate |
 | GET | `/register` | Public | Registration form (EJS view: `auth/register.ejs`) — username, email, password, confirmation |
 | POST | `/register` | Public | Creates an account: validates the input, hashes the password with scrypt, stores the role `alumni`, then redirects to `/users?registered=<username>`. `400` with every failing rule on the form, `409` if the username or email is taken |
 | GET | `/about` | Public | About page (EJS view: `about.ejs`) — what the portal is, what is implemented, what is not |
@@ -446,6 +455,29 @@ The backend's development server (Express) exposes the following starter routes 
 Run the server with `npm start`. Interactive API documentation for all endpoints is available via Swagger UI at [http://localhost:3000/api-docs](http://localhost:3000/api-docs); the OpenAPI spec itself lives in `src/docs/openapi.js`. The `/alumni` endpoints are the first endpoints of the Alumni Directory & Profile Management module; the remaining routes are temporary and used to verify the server is running. They will be extended and reorganized as the modules described in [Key Features](#key-features) are implemented.
 
 Any request that matches none of the routes above is answered by the [404 Guardian](#2-404-guardian-notfoundjs) with a `404` and a reason.
+
+## Authentication
+
+The portal authenticates with a server-side session and a scrypt password hash. There is no JWT, no OAuth provider, and no third-party identity service: one account per graduate or staff member, one password, one cookie.
+
+| Route | Method | Access | Behaviour |
+|-------|--------|--------|-----------|
+| `/register` | GET | Public | Registration form: username, email, password, confirmation; a signed-in visitor is sent to `/users` |
+| `/register` | POST | Public | Creates the account with role `alumni`, hashes the password, starts a session, redirects to `/users?registered=<username>`. `400` lists every failing rule; `409` when the username or email is taken |
+| `/login` | GET | Public | Sign-in form; a signed-in visitor is sent to `/users` |
+| `/login` | POST | Public | Verifies the hash, regenerates the session id, stores `{id, username, role}`, redirects to `?next=` (validated) or `/users`. `400` for a missing field, `401` for an unknown email or a wrong password — one message for both |
+| `/logout` | POST | Anyone | Destroys the session and clears the cookie, then redirects to `/`. POST only, so a link cannot end a session by accident |
+| `/me` | GET | Signed in | The member's own record, applications, donations, and any postings they published |
+| `/me/edit` | GET | Signed in | Edit form for the member's own username and email |
+| `/me` | POST | Signed in | Saves those two fields, refreshes the session copy, and redirects with a notice. `400` for an invalid username or email, `409` for a duplicate |
+
+**What the session holds.** Only `{id, username, role}` — never the password hash, never the email. The cookie is `mis.sid`, `HttpOnly`, `SameSite=Lax`, `Secure` outside development, and lasts eight hours. Because the role travels in the session, a role change takes effect at the next sign-in; that is deliberate, so a demotion cannot half-apply in the middle of a request.
+
+**How passwords are stored.** `src/lib/password.js` hashes with scrypt from the Node standard library — no bcrypt dependency. The hash lives in `users.password_hash` and is read by exactly one query, `UserModel.findCredentials`, used by sign-in. Every other read selects `id, username, email, role`, so a hash cannot reach a view, a JSON response, or a log line. A failed sign-in is verified against a dummy hash, so an unknown email and a wrong password take the same time and answer the same way.
+
+**Where the code lives.** `src/controllers/auth.controller.js` (register, sign in, sign out), `src/controllers/me.controller.js` (the member's own pages), `src/lib/password.js` (hash and verify), `src/lib/session.js` (cookie name, secret, flags), `src/lib/http.js` (`safeNext`, which keeps `?next=` from becoming an open redirect), and `src/middleware/auth.js` (the guards described in [Access Control](#access-control-route-guards)).
+
+**Not implemented yet, and deliberately absent from the UI:** password change and reset, email verification, "remember me", rate limiting or account lockout, and multi-device session listing. Sessions live in the process memory (`MemoryStore`), so signing in again is required after a restart and a second app instance would need a shared store. The `register` and `me` forms also do not collect profile data beyond username and email: graduation year, employer, and the rest belong to the Alumni Directory module, which is still a plan.
 
 ## Access Control (Route Guards)
 
@@ -464,6 +496,7 @@ Roles are stored in `users.role` and copied into the session at sign-in, so a ro
 | Announcement reads (`/announcements`, `/announcements/{id}`, `GET /api/announcements*`) | yes | — | — | — | — |
 | Job posting reads (`/job-postings`, `/job-postings/{id}`, `GET /api/job-postings*`) | yes | — | — | — | — |
 | Alumni directory (`/users`, `/users/{id}`, `GET /api/users`, `GET /api/users/{id}`) | — | yes | — | yes | yes |
+| Own pages (`/me`, `/me/edit`, `POST /me`) | — | yes | yes | yes | yes |
 | Announcement writes | — | — | — | yes | yes |
 | Job posting writes | — | — | — | yes | yes |
 | User writes (`POST`/`PUT`/`PATCH /api/users*`, `/users/new`, `/users/{id}/edit`) | — | — | — | yes | yes |
@@ -516,6 +549,7 @@ The menu is data, not markup: `src/lib/navigation.js` holds three groups of item
 | Item | Group | Guest | `alumni` | `employer` | `staff` | `admin` |
 |------|-------|-------|----------|------------|---------|---------|
 | Home, Announcements, Job postings, About | primary | yes | yes | yes | yes | yes |
+| My profile | primary | — | yes | yes | yes | yes |
 | Users (directory) | primary | — | yes | yes | yes | yes |
 | API | utility | yes | yes | yes | yes | yes |
 | New announcement | manage | — | — | — | yes | yes |
@@ -542,6 +576,8 @@ Guests also get Register and Sign in; a signed-in visitor gets their name, role,
 | New / edit posting | `/job-postings/new`, `/job-postings/{id}/edit` | Form card, one field per row |
 | 404 | any unmatched route | Centred error page with the request and the reason |
 | Error | 400 / 404 / 409 / 500 | Centred error page with the message |
+| My profile | `/me` | Profile header with an initials avatar, identity list, my applications and donations tables, action sidebar with the JSON equivalents |
+| Edit my record | `/me/edit` | Single form card with hints under each field, an error list on failure, and a note that deletion is an administrator action |
 | Admin overview | `/admin` | Panel tabs, four stat tiles, accounts-by-role table, two latest-rows tables |
 | Admin users | `/admin/users` | Dense table with a role pill, an inline role selector per row, and the panel tabs |
 | Admin applications | `/admin/applications` | Triage table with a status pill and an inline status selector |
@@ -763,6 +799,14 @@ Contributions are welcome. Since the project has no code yet, the most valuable 
 **TBD** — the license for this project has not been chosen yet. Until a license is decided and a `LICENSE` file is added, all rights are reserved.
 
 ## Changelog
+
+### 2026-11-25 — Member pages and the auth documentation
+
+- `/me` is the signed-in member's own page: identity, applications, donations, and any postings they published, plus links to the JSON equivalents.
+- `/me/edit` and `POST /me` let a member change their own username and email; the session is refreshed on save so the navigation shows the new name immediately. Role and password are not writable here.
+- Both pages work from `req.session.user.id`, never from a URL parameter, so there is no id to tamper with; a session whose account was deleted is destroyed and sent to sign-in.
+- The navigation model gained a `My profile` item for every signed-in role.
+- The README describes the whole authentication surface in one place: the eight auth routes, what the session holds, how passwords are hashed and kept out of reads, where the code lives, and what is deliberately missing.
 
 ### 2026-11-25 — Role-driven navigation
 

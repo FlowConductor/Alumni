@@ -1,0 +1,69 @@
+<%- include('../partials/head', { title: 'Edit my record' }) %>
+<%- include('../partials/nav', { active: 'me' }) %>
+
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <a href="/me">My profile</a><span>/</span>Edit
+</nav>
+
+<div class="page-header">
+  <div class="page-header__text">
+    <span class="eyebrow">My profile</span>
+    <h1>Edit my record</h1>
+    <p class="page-subtitle">
+      Update the identity the portal shows for you. Your role and your password are not changed here:
+      a role is an administrator decision, and a password change needs the account module, which is
+      not built yet.
+    </p>
+  </div>
+</div>
+
+<% if (errors.length > 0) { %>
+  <div class="alert alert--danger" role="alert">
+    <ul>
+      <% errors.forEach((error) => { %>
+        <li><%= error %></li>
+      <% }); %>
+    </ul>
+  </div>
+<% } %>
+
+<form class="form" method="POST" action="/me">
+  <fieldset>
+    <legend>Identity</legend>
+
+    <div class="field">
+      <label for="username">Username <span class="required">(required)</span></label>
+      <input type="text" id="username" name="username" value="<%= values.username %>" required
+             autocomplete="username" minlength="3" maxlength="100">
+      <p class="hint">3 to 100 characters: letters, digits, dot, underscore, or hyphen.</p>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Contact</legend>
+
+    <div class="field">
+      <label for="email">Email <span class="required">(required)</span></label>
+      <input type="email" id="email" name="email" value="<%= values.email %>" required
+             autocomplete="email">
+      <p class="hint">Used for sign-in and for the department's mailings.</p>
+    </div>
+  </fieldset>
+
+  <div class="form-actions">
+    <a class="btn btn--secondary" href="/me">Cancel</a>
+    <button class="btn btn--primary" type="submit">Save changes</button>
+  </div>
+</form>
+
+<div class="danger-zone">
+  <div class="danger-zone__text">
+    <h2>Deleting your account</h2>
+    <p>
+      A member cannot delete their own account. Ask a department administrator, who can remove it
+      from the admin panel once your donations and applications are settled.
+    </p>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

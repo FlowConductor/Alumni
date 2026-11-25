@@ -21,6 +21,7 @@ const ADMIN_ONLY = ['admin'];
 
 const PRIMARY = [
   { key: 'home', label: 'Home', href: '/' },
+  { key: 'me', label: 'My profile', href: '/me', roles: ROLES },
   { key: 'users', label: 'Users', href: '/users', roles: ROLES },
   { key: 'announcements', label: 'Announcements', href: '/announcements' },
   { key: 'job-postings', label: 'Job postings', href: '/job-postings' },
