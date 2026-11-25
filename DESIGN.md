@@ -389,6 +389,7 @@ Portraits are square (1:1), cropped to the face, 96px in tables and 160px on a p
 - **Utility bar** (`{utility-bar}`): a white strip above the navy bar with the faculty on the left and the department on the right, at label size in Ink Mute. It carries the institutional context so the navy bar can stay short.
 - **Top bar** (`{nav-bar}`): Department Navy, white text, 12px/24px padding, product name at `{typography.heading-md}` on the left, section links at `{typography.body-md}` on the right.
 - **Active item**: white text with a 2px `{colors.accent}` bottom border. Inactive items are `rgba(255,255,255,0.78)`.
+- **Session area**: on the right end of the navy bar, a signed-in visitor sees `<username> · <role>` at 13px in the muted white, followed by a `Sign out` button styled as a text link (no fill, no border) inside a POST form. A visitor without a session sees `Register` and `Sign in` links in their place. The session area never takes a filled button — the page keeps its one primary action.
 - **Breadcrumb** on detail pages: `Job postings / Data Analyst` in `{typography.body-sm}`, `{colors.ink-mute}`, links in `{colors.primary}`.
 - No hamburger above 768px; below it, links collapse into a single menu button labelled `Menu`.
 

@@ -19,6 +19,7 @@ const openapiSpec = require('./src/docs/openapi');
 const requestLogger = require('./src/middleware/logger');
 const notFoundHandler = require('./src/middleware/notFound');
 const errorHandler = require('./src/middleware/errorHandler');
+const { sessionMiddleware } = require('./src/lib/session');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -44,6 +45,13 @@ app.locals.initials = (name) =>
 
 app.use(requestLogger);
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(sessionMiddleware());
+
+// The signed-in user, available to every template as `currentUser`.
+app.use((req, res, next) => {
+  res.locals.currentUser = req.session.user || null;
+  next();
+});
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/', generalRoutes);

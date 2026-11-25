@@ -17,8 +17,18 @@
       <li><a class="nav__link <%= active === 'announcements' ? 'is-active' : '' %>" href="/announcements">Announcements</a></li>
       <li><a class="nav__link <%= active === 'job-postings' ? 'is-active' : '' %>" href="/job-postings">Job postings</a></li>
       <li><a class="nav__link <%= active === 'about' ? 'is-active' : '' %>" href="/about">About</a></li>
-      <li><a class="nav__link <%= active === 'register' ? 'is-active' : '' %>" href="/register">Register</a></li>
       <li><a class="nav__link" href="/api-docs">API</a></li>
+      <% if (currentUser) { %>
+        <li><span class="nav__user"><%= currentUser.username %> · <%= currentUser.role %></span></li>
+        <li>
+          <form class="nav__form" method="POST" action="/logout">
+            <button class="nav__button" type="submit">Sign out</button>
+          </form>
+        </li>
+      <% } else { %>
+        <li><a class="nav__link <%= active === 'register' ? 'is-active' : '' %>" href="/register">Register</a></li>
+        <li><a class="nav__link <%= active === 'login' ? 'is-active' : '' %>" href="/login">Sign in</a></li>
+      <% } %>
     </ul>
   </nav>
 </header>

@@ -1,9 +1,11 @@
-// Password hashing — scrypt from the Node standard library, so no dependency is
-// added for it. A stored value looks like `scrypt$<salt hex>$<hash hex>`; the
-// scheme prefix leaves room for a future algorithm change.
+// Password hashing and verification — scrypt from the Node standard library, so
+// no dependency is added for it. A stored value looks like
+// `scrypt$<salt hex>$<hash hex>`; the scheme prefix leaves room for a future
+// algorithm change.
 //
-// Only hashing lives here for now: there is no sign-in yet, so nothing verifies
-// a password. Verification belongs next to the login route when it is written.
+// The hash is produced by the register flow and checked by the sign-in flow.
+// Nothing else may read it: the User model never selects password_hash except
+// in the single auth lookup.
 
 const crypto = require('crypto');
 
@@ -17,4 +19,15 @@ function hashPassword(plain) {
   return `${SCHEME}$${salt}$${hash}`;
 }
 
-module.exports = { hashPassword };
+function verifyPassword(plain, stored) {
+  const [scheme, salt, hash] = String(stored || '').split('$');
+  if (scheme !== SCHEME || !salt || !hash) {
+    return false;
+  }
+
+  const expected = Buffer.from(hash, 'hex');
+  const candidate = crypto.scryptSync(plain, salt, expected.length);
+  return candidate.length === expected.length && crypto.timingSafeEqual(candidate, expected);
+}
+
+module.exports = { hashPassword, verifyPassword };

@@ -207,7 +207,9 @@ users (1) ────< job_applications (N) >──── (1) job_postings
 
 ## 6. Future Considerations (TBD)
 
-- Sign-in and sessions: `password_hash` is stored, but there is no login form, no session, and no password reset or verification email yet. Roles are meaningless without them.
+- Password reset and email verification: `password_hash` and sign-in exist, but there is no reset flow and no verification email.
+- A shared session store: sessions live in the process memory (`MemoryStore`), so they vanish on restart and cannot be shared by two instances. Redis or a MySQL-backed store is needed before scaling out.
+- Sign-in throttling: nothing slows down repeated failed attempts yet.
 - Multi-role accounts: an alumnus who also works for the department currently collapses into `staff`. A `user_roles` join table is the escape hatch if the department needs both.
 - Audit trail for role changes: who changed whose Role, and when.
 - Role-aware UI: hide actions a Role cannot perform instead of only rejecting them server-side.
@@ -242,7 +244,7 @@ Enforced in `src/controllers/apiJobPosting.controller.js` (JSON API), `src/contr
 
 ## 8. User Roles and Access Control
 
-Status: **partly implemented.** The `role` column exists (migration 007) and self-service registration always writes `alumni` with an scrypt password hash. There is still no sign-in, no session, and no authorization middleware, so every route remains open on the trusted network and no capability below is enforced. The matrix is the target once sign-in lands.
+Status: **partly implemented.** The `role` column exists (migration 007), self-service registration always writes `alumni` with an scrypt password hash, and sign-in/sign-out now work with a server-side session. What is missing is **enforcement**: there is no authorization middleware, so every route stays open and no capability below is checked. The matrix is the target for the next step.
 
 ### The four roles
 
@@ -293,6 +295,6 @@ Three clarifications:
 
 1. ~~Migration adding the `role` column (section 4)~~ — done: `007_add_auth_fields_to_users.sql`, `NOT NULL DEFAULT 'alumni'`.
 2. ~~Extend the User model to select and map `role`~~ — done for reads; writing a Role is still admin-only work that waits for step 4.
-3. Add session authentication on top of `password_hash` (already stored as an scrypt hash by the register flow) — without a sign-in, a Role is just a label.
+3. ~~Add session authentication on top of `password_hash`~~ — done: `POST /login` starts a session (crypto-signed cookie, eight hours, `HttpOnly`, `SameSite=Lax`), `POST /logout` destroys it, and the session carries only `id`, `username`, `role`.
 4. Add a `requireRole(...roles)` middleware next to the logger and the guardians, then apply it to the write routes (`POST`, `PUT`, `PATCH`, `DELETE`).
 5. Add a role column and a role selector (admin only) to the web views, and a `role` field to the `User` and `UserInput` schemas in `src/docs/openapi.js`.

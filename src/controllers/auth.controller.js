@@ -1,17 +1,16 @@
-// Auth Controller — the self-service register flow (/register).
+// Auth Controller — sign in, sign out, and self-service registration.
 //
-// Rules enforced here, before the model is called:
-//   username  3-100 characters: letters, digits, dot, underscore, hyphen; unique
-//   email     a valid address, at most 255 characters; unique
-//   password  at least 8 characters, at least one letter and one digit
-//   confirm   must match the password
+// Sessions are cookie based (express-session, see server.js). The session holds
+// only what the interface needs to render: id, username, role. The password hash
+// never enters the session, a view, or a log line.
 //
-// Registration always assigns the `alumni` role: a visitor can never choose a
-// role for themselves (ddd.md section 8). The password is hashed with scrypt
-// before it reaches the model, and the hash is never selected back out.
+// Sign-in does not yet guard any route: every page is still reachable without a
+// session. Enforcing the role matrix in ddd.md section 8 is the next step, and it
+// belongs in a requireRole middleware rather than in each controller.
 
 const UserModel = require('../models/user.model');
-const { hashPassword } = require('../lib/password');
+const { hashPassword, verifyPassword } = require('../lib/password');
+const { COOKIE_NAME } = require('../lib/session');
 
 const USERNAME_PATTERN = /^[a-zA-Z0-9._-]{3,100}$/;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -19,7 +18,15 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PASSWORD_MIN = 8;
 const PASSWORD_MAX = 200;
 
-function validate({ username, email, password, passwordConfirm }) {
+// Checked against every unknown email so a missing account and a wrong password
+// take the same time and answer the same way. Generated once at startup.
+const DUMMY_HASH = hashPassword('no-such-account-placeholder');
+
+const SESSION_USER = 'user';
+
+/* ---------------------------------------------------------------- register */
+
+function validateRegistration({ username, email, password, passwordConfirm }) {
   const errors = [];
 
   if (!username) {
@@ -55,18 +62,22 @@ function validate({ username, email, password, passwordConfirm }) {
 
 // GET /register — view: src/views/auth/register.ejs
 function registerForm(req, res) {
-  res.render('auth/register', { errors: [], values: { username: '', email: '' } });
+  if (req.session[SESSION_USER]) {
+    return res.redirect('/users');
+  }
+  return res.render('auth/register', { errors: [], values: { username: '', email: '' } });
 }
 
 // POST /register
 async function register(req, res) {
-  const username = (req.body.username || '').trim();
-  const email = (req.body.email || '').trim();
-  const password = req.body.password || '';
-  const passwordConfirm = req.body.password_confirm || '';
+  const body = req.body || {};
+  const username = (body.username || '').trim();
+  const email = (body.email || '').trim();
+  const password = body.password || '';
+  const passwordConfirm = body.password_confirm || '';
   const values = { username, email };
 
-  const errors = validate({ username, email, password, passwordConfirm });
+  const errors = validateRegistration({ username, email, password, passwordConfirm });
   if (errors.length > 0) {
     return res.status(400).render('auth/register', { errors, values });
   }
@@ -91,4 +102,78 @@ async function register(req, res) {
   }
 }
 
-module.exports = { registerForm, register };
+/* ------------------------------------------------------------------- login */
+
+// GET /login — view: src/views/auth/login.ejs
+function loginForm(req, res) {
+  if (req.session[SESSION_USER]) {
+    return res.redirect('/users');
+  }
+  return res.render('auth/login', { errors: [], values: { email: '' } });
+}
+
+function regenerateSession(req) {
+  return new Promise((resolve, reject) => {
+    req.session.regenerate((err) => (err ? reject(err) : resolve()));
+  });
+}
+
+function saveSession(req) {
+  return new Promise((resolve, reject) => {
+    req.session.save((err) => (err ? reject(err) : resolve()));
+  });
+}
+
+// POST /login
+async function login(req, res) {
+  // Express 5 leaves req.body undefined when the request carries no body, so a
+  // body-less POST is a validation failure, not a crash.
+  const body = req.body || {};
+  const email = (body.email || '').trim();
+  const password = body.password || '';
+  const values = { email };
+
+  const errors = [];
+  if (!email) errors.push('Field "email" is required.');
+  if (!password) errors.push('Field "password" is required.');
+  if (errors.length > 0) {
+    return res.status(400).render('auth/login', { errors, values });
+  }
+
+  const credentials = await UserModel.findCredentials(email);
+  const stored = credentials && credentials.password_hash ? credentials.password_hash : DUMMY_HASH;
+  const valid = verifyPassword(password, stored);
+
+  if (!valid || !credentials || !credentials.password_hash) {
+    // One message for both cases: a valid email with the wrong password and an
+    // unknown email must not be distinguishable from the outside.
+    return res.status(401).render('auth/login', {
+      errors: ['Email or password is incorrect.'],
+      values,
+    });
+  }
+
+  // A fresh session id on every sign-in prevents session fixation.
+  await regenerateSession(req);
+  req.session[SESSION_USER] = {
+    id: credentials.id,
+    username: credentials.username,
+    role: credentials.role,
+  };
+  await saveSession(req);
+
+  return res.redirect('/users');
+}
+
+/* ------------------------------------------------------------------ logout */
+
+// POST /logout
+function logout(req, res, next) {
+  req.session.destroy((err) => {
+    if (err) return next(err);
+    res.clearCookie(COOKIE_NAME);
+    return res.redirect('/');
+  });
+}
+
+module.exports = { registerForm, register, loginForm, login, logout };

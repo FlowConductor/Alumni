@@ -164,9 +164,10 @@ MIS/
     │   ├── errorHandler.js 5xx Guardian: terminal error handler, JSON or error page
     │   └── errorLog.js     Appends error entries to logs/error.logs
     ├── lib/                Small shared helpers with no domain knowledge
-    │   └── password.js     scrypt password hashing (no dependency; hash only, verification lands with login)
+    │   ├── password.js     scrypt hashing and verification (Node stdlib, no dependency)
+    │   └── session.js      Cookie name, secret, and flags for express-session
     ├── controllers/        Controllers
-    │   ├── auth.controller.js     Auth controller: the self-service register flow for /register
+    │   ├── auth.controller.js     Auth controller: register, sign in, sign out
     │   ├── user.controller.js      User controller: web CRUD (HTML pages + forms) for /users
     │   ├── apiUser.controller.js   ApiUser controller: JSON CRUD for /api/users
     │   ├── announcement.controller.js    Announcement controller: web CRUD (HTML pages + forms) for /announcements
@@ -201,6 +202,7 @@ MIS/
     │   ├── error.ejs              Error page (400/404/409/500)
     │   ├── 404.ejs                Generic 404 page rendered by the 404 Guardian
     │   ├── auth/
+    │   │   ├── login.ejs          Sign-in form (GET /login)
     │   │   └── register.ejs       Registration form (GET /register)
     │   ├── partials/              Shared layout fragments included by every page
     │   │   ├── head.ejs           <head>: title, viewport, stylesheet
@@ -282,7 +284,19 @@ A POST to `/api/users`, for example: `server.js` parses the JSON body, the contr
    npm install
    ```
 
-3. Run the application:
+3. Configure the environment:
+
+   ```bash
+   cp .env.example .env
+   ```
+
+   Set the database credentials and `SESSION_SECRET`. Outside local development the secret must be a long random string — the session cookie is signed with it:
+
+   ```bash
+   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+   ```
+
+4. Run the application:
 
    ```bash
    npm start
@@ -389,6 +403,9 @@ The backend's development server (Express) exposes the following starter routes 
 | DELETE | `/api/users/{id}` | Deletes the user with the given id and returns the removed record, or `404` if not found |
 | PUT / PATCH | `/api/users/{id}` | Updates a user by id. Request body: `username` and/or `email` (partial updates allowed). Returns the updated record, or `404` if the id does not exist |
 | POST   | `/api/users` | Creates a user. Request body: `username` and `email` (both required). Returns `201` with `{"username": "...", "email": "..."}`; duplicate username/email returns `409`. Users are stored in the MySQL `users` table |
+| GET    | `/login` | Sign-in form (EJS view: `auth/login.ejs`). A signed-in visitor is redirected to `/users` |
+| POST   | `/login` | Verifies the password against the stored scrypt hash, starts a session, redirects to `/users`. `400` for missing fields, `401` for an unknown email or a wrong password (same message for both) |
+| POST   | `/logout` | Destroys the session and clears the cookie, then redirects to `/`. POST only, so a link cannot end a session by accident |
 | GET    | `/register` | Registration form (EJS view: `auth/register.ejs`) — username, email, password, confirmation |
 | POST   | `/register` | Creates an account: validates the input, hashes the password with scrypt, stores the role `alumni`, then redirects to `/users?registered=<username>`. `400` with every failing rule on the form, `409` if the username or email is taken |
 | GET    | `/about` | About page (EJS view: `about.ejs`) — what the portal is, what is implemented, what is not |
@@ -409,6 +426,7 @@ Every page is server-rendered with EJS and styled by one stylesheet, `public/css
 | Page | Route | Layout |
 |------|-------|--------|
 | Home | `/` | Hero with the tagline, three module cards, developer links |
+| Sign in | `/login` | Single card form (email, password) with an inline error and a link to register |
 | Register | `/register` | Two fieldsets (Your record, Password) with hinted fields and an inline error list on failure |
 | About | `/about` | Long-form prose: two products in one, what is implemented, what is not |
 | Alumni directory | `/users` | Page header with count badge and one primary action, dense table, empty state |
@@ -450,6 +468,15 @@ The 120-character limit is enforced in three places: the API controller (`apiJob
 |-------|----------|------|--------------|
 | `username` | Yes | Non-empty string, unique | `400` if missing, `409` if taken |
 | `email` | Yes | Valid address, unique | `400` if missing or malformed, `409` if taken |
+
+### Sign in
+
+| Field | Required | Rule | On violation |
+|-------|----------|------|--------------|
+| `email` | Yes | Must match an account that has a password | `400` if missing, `401` — `Email or password is incorrect.` |
+| `password` | Yes | Verified against the stored scrypt hash | `400` if missing, `401` — same message |
+
+An unknown email and a wrong password produce the same message and take comparable time (the password is checked against a dummy hash when no account matches), so the form cannot be used to discover which addresses are registered.
 
 ### Registration
 
@@ -639,6 +666,17 @@ Contributions are welcome. Since the project has no code yet, the most valuable 
 **TBD** — the license for this project has not been chosen yet. Until a license is decided and a `LICENSE` file is added, all rights are reserved.
 
 ## Changelog
+
+### 2026-11-11 — Sign in and sign out
+
+- `GET /login` renders a sign-in card; `POST /login` verifies the password against the stored scrypt hash and starts a session, `POST /logout` destroys it.
+- Sessions are cookie based (`express-session`, the project's only new dependency): signed cookie `mis.sid`, `HttpOnly`, `SameSite=Lax`, `Secure` in production, eight-hour lifetime, memory store. The secret comes from `SESSION_SECRET`.
+- A fresh session id is issued on sign-in (fixation protection), and the session holds only `id`, `username`, and `role` — never the password hash.
+- An unknown email and a wrong password answer with the same `401` message and comparable timing (the password is checked against a dummy hash when no account matches), so sign-in cannot enumerate accounts.
+- The navigation now reflects the session: `Register` and `Sign in` for visitors, `username · role` plus a `Sign out` button (a POST form) for signed-in users.
+- Fixed while testing: the credentials query built invalid SQL, and Express 5 leaves `req.body` undefined for a body-less POST, which crashed the handler; both are corrected.
+- Still no enforcement: every page stays reachable without a session. Applying the role matrix from `ddd.md` section 8 is the next step.
+- `SESSION_SECRET` added to `.env.example` and `docker-compose.yml`.
 
 ### 2026-11-11 — Registration
 

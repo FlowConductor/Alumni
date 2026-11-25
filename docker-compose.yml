@@ -10,6 +10,8 @@ services:
       - DB_USER=root
       - DB_PASSWORD=mis_alumni_pass
       - DB_NAME=mis_alumni
+      # Signs the session cookie. Override it outside local development.
+      - SESSION_SECRET=dev-only-change-me-1f4b8c2d9e6a
     depends_on:
       migrate:
         condition: service_completed_successfully

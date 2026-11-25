@@ -8,6 +8,8 @@
 const db = require('../db/database');
 
 const SELECT = 'SELECT id, username, email, role FROM users';
+// The one query allowed to read password_hash (sign-in only).
+const SELECT_CREDENTIALS = 'SELECT id, username, email, role, password_hash FROM users';
 
 // CREATE
 async function create({ username, email, password_hash = null, role = 'alumni' }) {
@@ -27,6 +29,13 @@ async function findAll() {
 
 async function findById(id) {
   const [rows] = await db.query(`${SELECT} WHERE id = ?`, [id]);
+  return rows[0] || null;
+}
+
+// AUTH ONLY — the single query that returns password_hash, used by sign-in to
+// verify a password. Never call this from a controller that renders a record.
+async function findCredentials(email) {
+  const [rows] = await db.query(`${SELECT_CREDENTIALS} WHERE email = ?`, [email]);
   return rows[0] || null;
 }
 
@@ -68,4 +77,4 @@ async function remove(id) {
   return user;
 }
 
-module.exports = { create, findAll, findById, update, remove };
+module.exports = { create, findAll, findById, findCredentials, update, remove };

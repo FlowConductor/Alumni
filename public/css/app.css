@@ -244,6 +244,32 @@ hr,
   border-bottom-color: var(--color-accent);
 }
 
+.nav__user {
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.nav__form {
+  margin: 0;
+}
+
+.nav__button {
+  background: none;
+  border: 0;
+  padding: var(--space-xs) 0;
+  color: rgba(255, 255, 255, 0.78);
+  font-family: inherit;
+  font-size: 14px;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: color var(--transition), border-color var(--transition);
+}
+
+.nav__button:hover {
+  color: var(--color-on-primary);
+}
+
 /* Layout */
 
 .container {

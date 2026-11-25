@@ -1,0 +1,51 @@
+<%- include('../partials/head', { title: 'Sign in' }) %>
+<%- include('../partials/nav', { active: 'login' }) %>
+
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <a href="/">Home</a><span>/</span>Sign in
+</nav>
+
+<div class="page-header">
+  <div class="page-header__text">
+    <span class="eyebrow">Membership</span>
+    <h1>Sign in</h1>
+    <p class="page-subtitle">
+      Use the email and password of your alumni account. Accounts created before
+      registration existed have no password and cannot sign in yet.
+    </p>
+  </div>
+</div>
+
+<% if (errors.length > 0) { %>
+  <div class="alert alert--error" role="alert">
+    <% errors.forEach((error) => { %>
+      <p><%= error %></p>
+    <% }); %>
+  </div>
+<% } %>
+
+<form class="form" method="POST" action="/login" novalidate>
+  <div class="field">
+    <label for="email">Email <span class="required">(required)</span></label>
+    <input type="email" id="email" name="email" value="<%= values.email %>"
+           maxlength="255" required autocomplete="username" autofocus>
+  </div>
+
+  <div class="field">
+    <label for="password">Password <span class="required">(required)</span></label>
+    <input type="password" id="password" name="password"
+           maxlength="200" required autocomplete="current-password">
+  </div>
+
+  <div class="form-actions">
+    <button class="btn btn--primary" type="submit">Sign in</button>
+    <a class="btn btn--secondary" href="/register">Create an account</a>
+  </div>
+</form>
+
+<p class="form-note">
+  Password reset is not built yet: if you lose the password, ask a department administrator to
+  remove and re-create the record. Sessions expire after eight hours.
+</p>
+
+<%- include('../partials/footer') %>
