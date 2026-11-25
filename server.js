@@ -21,6 +21,7 @@ const requestLogger = require('./src/middleware/logger');
 const notFoundHandler = require('./src/middleware/notFound');
 const errorHandler = require('./src/middleware/errorHandler');
 const { sessionMiddleware } = require('./src/lib/session');
+const { navigationFor } = require('./src/lib/navigation');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -60,7 +61,8 @@ app.use((req, res, next) => {
   res.locals.canManage = role === 'staff' || role === 'admin';
   res.locals.canDelete = role === 'admin';
   res.locals.canApply = role === 'alumni';
-  res.locals.isAdmin = role === 'admin';
+  // The menu for this visitor, filtered by role (src/lib/navigation.js).
+  res.locals.nav = navigationFor(user);
 
   next();
 });

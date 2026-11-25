@@ -5,6 +5,11 @@
     <span>Department of Management Information Systems</span>
   </div>
 </div>
+<%#
+  The menu comes from src/lib/navigation.js, which filters items by role. Nothing
+  here decides visibility: a link appears because the model offers it, so a page
+  cannot advertise an action the guards would refuse.
+%>
 <header class="site-header">
   <nav class="nav" aria-label="Main">
     <a class="nav__brand" href="/">
@@ -12,16 +17,16 @@
       Alumni Portal
     </a>
     <ul class="nav__links">
-      <li><a class="nav__link <%= active === 'home' ? 'is-active' : '' %>" href="/">Home</a></li>
-      <li><a class="nav__link <%= active === 'users' ? 'is-active' : '' %>" href="/users">Users</a></li>
-      <li><a class="nav__link <%= active === 'announcements' ? 'is-active' : '' %>" href="/announcements">Announcements</a></li>
-      <li><a class="nav__link <%= active === 'job-postings' ? 'is-active' : '' %>" href="/job-postings">Job postings</a></li>
-      <% if (isAdmin) { %>
-        <li><a class="nav__link <%= active === 'admin' ? 'is-active' : '' %>" href="/admin">Admin</a></li>
-      <% } %>
-      <li><a class="nav__link <%= active === 'about' ? 'is-active' : '' %>" href="/about">About</a></li>
-      <li><a class="nav__link" href="/api-docs">API</a></li>
-      <% if (currentUser) { %>
+      <% nav.primary.forEach((item) => { %>
+        <li><a class="nav__link <%= active === item.key ? 'is-active' : '' %>" href="<%= item.href %>"><%= item.label %></a></li>
+      <% }); %>
+      <% nav.manage.forEach((item) => { %>
+        <li><a class="nav__link nav__link--manage <%= active === item.key ? 'is-active' : '' %>" href="<%= item.href %>"><%= item.label %></a></li>
+      <% }); %>
+      <% nav.utility.forEach((item) => { %>
+        <li><a class="nav__link" href="<%= item.href %>"><%= item.label %></a></li>
+      <% }); %>
+      <% if (nav.signedIn) { %>
         <li><span class="nav__user"><%= currentUser.username %> · <%= currentUser.role %></span></li>
         <li>
           <form class="nav__form" method="POST" action="/logout">

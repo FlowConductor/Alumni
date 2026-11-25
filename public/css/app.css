@@ -244,6 +244,17 @@ hr,
   border-bottom-color: var(--color-accent);
 }
 
+/* Write actions, offered only to staff and administrators by the navigation
+   model. Gold and heavier than the reading links so the two groups stay legible. */
+.nav__link--manage {
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.nav__link--manage:hover {
+  color: #e6c95a;
+}
+
 .nav__user {
   color: rgba(255, 255, 255, 0.78);
   font-size: 13px;

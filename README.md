@@ -169,7 +169,8 @@ MIS/
     ├── lib/                Small shared helpers with no domain knowledge
     │   ├── password.js     scrypt hashing and verification (Node stdlib, no dependency)
     │   ├── session.js      Cookie name, secret, and flags for express-session
-    │   └── http.js         wantsJson() (HTML or JSON answer) and safeNext() (no open redirect)
+    │   ├── http.js         wantsJson() (HTML or JSON answer) and safeNext() (no open redirect)
+    │   └── navigation.js   Role-driven menu model: which items a visitor sees
     ├── controllers/        Controllers
     │   ├── auth.controller.js     Auth controller: register, sign in, sign out
     │   ├── user.controller.js      User controller: web CRUD (HTML pages + forms) for /users
@@ -448,7 +449,7 @@ Any request that matches none of the routes above is answered by the [404 Guardi
 
 ## Access Control (Route Guards)
 
-Route guards live in `src/middleware/auth.js` and implement the role matrix in [ddd.md](ddd.md) section 8. Two guards are exported:
+Route guards live in `src/middleware/auth.js` and implement the role matrix in [ddd.md](ddd.md) section 8. The menu is derived from the same matrix by `src/lib/navigation.js`, so a link is shown exactly when its target is allowed — see [Navigation by role](#navigation-by-role). Two guards are exported:
 
 | Guard | Behaviour |
 |-------|-----------|
@@ -507,6 +508,22 @@ To reach the panel on a fresh database, seed it (`npm run seed`) and sign in wit
 ## Web Interface
 
 Every page is server-rendered with EJS and styled by one stylesheet, `public/css/app.css`, which implements the tokens and component rules in [DESIGN.md](DESIGN.md). The shared layout lives in `src/views/partials/` (`head.ejs`, `nav.ejs`, `footer.ejs`), so each page file contains only its own content.
+
+### Navigation by role
+
+The menu is data, not markup: `src/lib/navigation.js` holds three groups of items — `primary` (the read surface), `manage` (write actions), and `utility` (API docs) — and each item lists the roles that may see it. `navigationFor(user)` filters them for the current visitor, `server.js` puts the result in `res.locals.nav`, and `partials/nav.ejs` renders whatever it receives. A page therefore cannot advertise an action the guards would refuse.
+
+| Item | Group | Guest | `alumni` | `employer` | `staff` | `admin` |
+|------|-------|-------|----------|------------|---------|---------|
+| Home, Announcements, Job postings, About | primary | yes | yes | yes | yes | yes |
+| Users (directory) | primary | — | yes | yes | yes | yes |
+| API | utility | yes | yes | yes | yes | yes |
+| New announcement | manage | — | — | — | yes | yes |
+| New posting | manage | — | — | — | yes | yes |
+| New user | manage | — | — | — | yes | yes |
+| Admin | manage | — | — | — | — | yes |
+
+Guests also get Register and Sign in; a signed-in visitor gets their name, role, and Sign out instead. The `manage` links are set in the gold accent so the write actions read as a separate group from the reading menu.
 
 | Page | Route | Layout |
 |------|-------|--------|
@@ -746,6 +763,13 @@ Contributions are welcome. Since the project has no code yet, the most valuable 
 **TBD** — the license for this project has not been chosen yet. Until a license is decided and a `LICENSE` file is added, all rights are reserved.
 
 ## Changelog
+
+### 2026-11-25 — Role-driven navigation
+
+- `src/lib/navigation.js` becomes the single definition of the menu: primary, manage, and utility groups, each item carrying the roles that may see it.
+- `server.js` exposes the filtered menu as `res.locals.nav`, and `partials/nav.ejs` renders it instead of hardcoding links, so adding an item is a one-line change in the model.
+- Staff and administrators now get direct write actions (new announcement, new posting, new user) in the nav; guests no longer see the directory link, which the guard already refused.
+- Verified against all five audiences: every offered link answers below 400 for its role, and the alumni, employer, staff, and admin menus differ exactly as the matrix says.
 
 ### 2026-11-25 — Administrator control panel
 
