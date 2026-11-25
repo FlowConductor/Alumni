@@ -16,6 +16,9 @@
       <li><a class="nav__link <%= active === 'users' ? 'is-active' : '' %>" href="/users">Users</a></li>
       <li><a class="nav__link <%= active === 'announcements' ? 'is-active' : '' %>" href="/announcements">Announcements</a></li>
       <li><a class="nav__link <%= active === 'job-postings' ? 'is-active' : '' %>" href="/job-postings">Job postings</a></li>
+      <% if (isAdmin) { %>
+        <li><a class="nav__link <%= active === 'admin' ? 'is-active' : '' %>" href="/admin">Admin</a></li>
+      <% } %>
       <li><a class="nav__link <%= active === 'about' ? 'is-active' : '' %>" href="/about">About</a></li>
       <li><a class="nav__link" href="/api-docs">API</a></li>
       <% if (currentUser) { %>

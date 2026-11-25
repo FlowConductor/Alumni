@@ -20,6 +20,7 @@ Companion documents: [brand.md](brand.md) (brand guidelines) · [DESIGN.md](DESI
 - [Getting Started](#getting-started)
 - [Current Routes](#current-routes)
 - [Access Control (Route Guards)](#access-control-route-guards)
+- [Admin Panel](#admin-panel)
 - [Web Interface](#web-interface)
 - [Validation Rules](#validation-rules)
 - [Middleware & Error Handling](#middleware--error-handling)
@@ -178,7 +179,8 @@ MIS/
     │   ├── apiDonation.controller.js   ApiDonation controller: JSON CRUD for /api/donations (direct + nested)
     │   ├── apiJobPosting.controller.js  ApiJobPosting controller: JSON CRUD for /api/job-postings (direct + nested)
     │   └── apiApplication.controller.js  ApiApplication controller: JSON CRUD for /api/applications (direct + nested under users and job-postings)
-    │   └── jobPosting.controller.js  JobPosting controller: web CRUD + apply form for /job-postings
+    │   ├── jobPosting.controller.js  JobPosting controller: web CRUD + apply form for /job-postings
+    │   └── admin.controller.js      Admin controller: /admin panel (roles, applications, donations)
     ├── routes/             Route definitions (mapped to controllers)
     │   ├── auth.js         /register, /login, /logout routes -> Auth controller
     │   ├── general.js      / , /about , /hello , /hello/:name , /sum/... , /api/health
@@ -191,7 +193,8 @@ MIS/
     │   ├── apiUserResources.js    Nested routes under /api/users (donations, job-postings, applications by user)
     │   ├── apiApplications.js     /api/applications routes -> ApiApplication controller (direct)
     │   ├── apiJobPostingResources.js   Nested routes under /api/job-postings (applications per posting)
-    │   └── jobPostings.js       /job-postings routes -> JobPosting controller (web UI)
+    │   ├── jobPostings.js       /job-postings routes -> JobPosting controller (web UI)
+    │   └── admin.js             /admin routes -> Admin controller, behind requireRole('admin')
     │   ├── announcements.js      /announcements routes -> Announcement controller
     ├── models/             Models
     │   ├── user.model.js      User model: create, findAll, findById, update, remove (CRUD) on the MySQL users table
@@ -226,6 +229,12 @@ MIS/
     │       ├── create.ejs         Create form page (GET /job-postings/new)
     │       ├── details.ejs        Posting detail page with applications + apply form (GET /job-postings/:id)
     │       └── edit.ejs           Edit form page (GET /job-postings/:id/edit)
+    │   └── admin/
+    │       ├── _tabs.ejs         Panel navigation shared by the four admin pages
+    │       ├── overview.ejs      Dashboard: counts, accounts by role, latest rows (GET /admin)
+    │       ├── users.ejs         Accounts with a role selector (GET /admin/users)
+    │       ├── applications.ejs  Application triage (GET /admin/applications)
+    │       └── donations.ejs     Donation ledger and record form (GET /admin/donations)
     ├── db/                 Data layer tooling
     │   ├── database.js     Shared mysql2 connection pool (reads .env)
     │   ├── migrate.js      Migration runner (tracks applied files in `migrations`)
@@ -405,6 +414,17 @@ The backend's development server (Express) exposes the following starter routes 
 | POST | `/job-postings/{id}` | Staff or admin | Update a posting from an HTML form; redirects to `/job-postings/{id}` |
 | POST | `/job-postings/{id}/delete` | Staff or admin | Delete a posting from an HTML form; `409` if it still has applications |
 | POST | `/job-postings/{id}/apply` | Alumni | Apply to a posting from the HTML form (fields: `user_id`, optional `cover_letter`); `409` if already applied |
+| GET | `/admin` | Admin | Control panel dashboard (EJS view: `admin/overview.ejs`) — counts, accounts by role, latest applications and donations |
+| GET | `/admin/users` | Admin | Accounts with a role selector (EJS view: `admin/users.ejs`); links to view, edit, and delete |
+| POST | `/admin/users/{id}/role` | Admin | Assigns a role (`alumni`, `employer`, `staff`, `admin`). Refused for your own account, for an unknown role, and for demoting the last administrator |
+| POST | `/admin/users/{id}/delete` | Admin | Deletes an account from the panel; `409` message when donations or applications still reference it |
+| GET | `/admin/applications` | Admin | Application triage table (EJS view: `admin/applications.ejs`), newest first |
+| POST | `/admin/applications/{id}/status` | Admin | Moves an application to `pending`, `reviewed`, `accepted`, or `rejected` |
+| POST | `/admin/applications/{id}/delete` | Admin | Removes an application record |
+| GET | `/admin/donations` | Admin | Donation ledger with the record form (EJS view: `admin/donations.ejs`) |
+| POST | `/admin/donations` | Admin | Records a donation for an existing member: `user_id`, `amount`, `currency`, `campaign`, `status` |
+| POST | `/admin/donations/{id}/status` | Admin | Moves a donation to `pending`, `completed`, or `failed` |
+| POST | `/admin/donations/{id}/delete` | Admin | Removes a donation; `completed` rows are accounting history and are refused |
 | GET | `/api/users` | Signed in | Returns the list of saved users (JSON) |
 | GET | `/api/users/{id}` | Signed in | Returns a single user by id, or `404` if not found |
 | DELETE | `/api/users/{id}` | Admin | Deletes the user with the given id and returns the removed record, or `404` if not found |
@@ -450,6 +470,8 @@ Roles are stored in `users.role` and copied into the session at sign-in, so a ro
 | Applications: read and status changes | — | — | — | yes | yes |
 | Applying to a posting (`POST /job-postings/{id}/apply`, `POST /api/applications`) | — | — | yes | — | — |
 | Deleting a user (`DELETE /api/users/{id}`, `POST /users/{id}/delete`) | — | — | — | — | yes |
+| Changing a role (`POST /admin/users/{id}/role`, `PATCH /api/users/{id}` with `role`) | — | — | — | — | yes |
+| The admin panel (`/admin`, `/admin/users`, `/admin/applications`, `/admin/donations`) | — | — | — | — | yes |
 
 Two known gaps, documented rather than hidden: job postings have no company owner column yet, so employers cannot create or edit a posting (only staff and administrators can); and `POST /api/applications` does not check that `user_id` matches the caller — an alumnus can currently apply on someone else's behalf.
 
@@ -464,6 +486,23 @@ How a refusal looks depends on the surface:
 | JSON API with the wrong role | `403` `{"error": "Not permitted", "reason": "limited to department staff or administrator", "method": "DELETE", "path": "/api/users/1"}` |
 
 The guards answer API requests as JSON and page requests as HTML/redirects by inspecting the request path: anything under `/api/` (checked on `req.originalUrl`, so the check also works inside a mounted router) is treated as an API call. Views read `currentUser`, `canManage` (staff or admin), `canDelete` (admin) and `canApply` (alumni) from `res.locals`, so a page never renders an action the caller cannot perform.
+
+## Admin Panel
+
+`/admin` is the administrator workspace: four pages behind `requireRole('admin')`, built from the same design system as the public pages. The link appears in the navigation only for an administrator, and an anonymous visitor is redirected to sign in while anyone else gets the `403` page.
+
+| Page | What it does | Rules it enforces |
+|------|--------------|-------------------|
+| `/admin` | Dashboard: user, donation, posting, and application counts, accounts per role, the latest applications and donations | none beyond the admin gate |
+| `/admin/users` | Every account with a role selector | No self-changes (an administrator cannot demote itself out of the panel), no unknown role, and the last administrator can be neither demoted nor deleted |
+| `/admin/applications` | Triage table: change status, open the posting, delete a record | Status must be one of `pending`, `reviewed`, `accepted`, `rejected` |
+| `/admin/donations` | Ledger plus a form to record a transfer that arrived outside the portal | Amount must be greater than zero, the donor must exist, currency is upper-cased, and a `completed` donation can no longer be deleted because it is accounting history |
+
+Every panel action answers with a redirect carrying the outcome (`?notice=` or `?error=`), rendered as an alert at the top of the page, so a form submission never leaves a stale screen behind and the browser's back button cannot re-post.
+
+The same role change is available over JSON: `PATCH /api/users/{id}` with `{"role": "staff"}`. The route gate requires staff or admin (so an alumnus gets `403` from the guard), and the controller requires `admin` on top of that (so a staff member gets `403 Only an administrator may change a role.`). Validation answers `400` for an unknown role and `409` for demoting the last administrator.
+
+To reach the panel on a fresh database, seed it (`npm run seed`) and sign in with the bootstrap administrator: `admin@mis-alumni.local` / `mis-alumni-admin`. Change those values with `SEED_ADMIN_EMAIL` and `SEED_ADMIN_PASSWORD` before seeding anything that is not a local development database.
 
 ## Web Interface
 
@@ -486,6 +525,10 @@ Every page is server-rendered with EJS and styled by one stylesheet, `public/css
 | New / edit posting | `/job-postings/new`, `/job-postings/{id}/edit` | Form card, one field per row |
 | 404 | any unmatched route | Centred error page with the request and the reason |
 | Error | 400 / 404 / 409 / 500 | Centred error page with the message |
+| Admin overview | `/admin` | Panel tabs, four stat tiles, accounts-by-role table, two latest-rows tables |
+| Admin users | `/admin/users` | Dense table with a role pill, an inline role selector per row, and the panel tabs |
+| Admin applications | `/admin/applications` | Triage table with a status pill and an inline status selector |
+| Admin donations | `/admin/donations` | Record form card above the ledger table, completed rows locked |
 
 Structural pieces shared by every page: an institutional utility bar above the navy navigation, an eyebrow above each page title, page headers and section heads closed by a hairline rule, breadcrumbs on every record page, a sticky sidebar on detail pages, fieldsets with legends on forms, a danger zone below edit forms, and a three-column footer.
 
@@ -703,6 +746,14 @@ Contributions are welcome. Since the project has no code yet, the most valuable 
 **TBD** — the license for this project has not been chosen yet. Until a license is decided and a `LICENSE` file is added, all rights are reserved.
 
 ## Changelog
+
+### 2026-11-25 — Administrator control panel
+
+- `/admin` adds four administrator pages: a dashboard, accounts with a role selector, application triage, and a donation ledger with a record form.
+- `src/routes/admin.js` mounts the whole panel behind `requireRole('admin')`, and `src/controllers/admin.controller.js` enforces the rules of ddd.md section 8: no self-role changes, no self-deletion, the last administrator is protected, and a completed donation cannot be deleted.
+- The User model gained `role` in `update()` (whitelisted against the column's enum) and `countByRole()`; `PATCH`/`PUT /api/users/{id}` now accepts `role`, with the administrator check inside the controller on top of the route guard.
+- The navigation shows an Admin link only for administrators, and the panel uses the design system: panel tabs, stat tiles, inline select forms.
+- `.env.example` documents `SEED_ADMIN_USERNAME`, `SEED_ADMIN_EMAIL`, and `SEED_ADMIN_PASSWORD`, the bootstrap administrator the seeder creates.
 
 ### 2026-11-25 — Auth middleware and guarded routes
 

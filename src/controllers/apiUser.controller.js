@@ -66,7 +66,7 @@ async function update(req, res) {
   const id = idParamOr400(req, res);
   if (id === null) return;
 
-  const { username, email } = req.body || {};
+  const { username, email, role } = req.body || {};
 
   if (username !== undefined && (typeof username !== 'string' || !username.trim())) {
     return res.status(400).json({ error: 'Field "username" must be a non-empty string.' });
@@ -75,11 +75,41 @@ async function update(req, res) {
     return res.status(400).json({ error: 'Field "email" must be a valid email address.' });
   }
 
+  // A role is a privilege, so it needs the administrator role on top of the staff
+  // gate the route already applies (ddd.md section 8). The rules mirror the admin
+  // panel: no self-changes, and the last administrator keeps its role.
+  if (role !== undefined) {
+    if (!UserModel.ROLES.includes(role)) {
+      return res.status(400).json({ error: `Field "role" must be one of: ${UserModel.ROLES.join(', ')}.` });
+    }
+    if (req.session.user.role !== 'admin') {
+      return res.status(403).json({
+        error: 'Not permitted',
+        reason: 'Only an administrator may change a role.',
+        method: req.method,
+        path: req.originalUrl,
+      });
+    }
+    if (req.session.user.id === id) {
+      return res.status(403).json({
+        error: 'Not permitted',
+        reason: 'You cannot change your own role.',
+        method: req.method,
+        path: req.originalUrl,
+      });
+    }
+    const target = await UserModel.findById(id);
+    if (target && target.role === 'admin' && (await UserModel.countByRole('admin')) <= 1) {
+      return res.status(409).json({ error: 'The last administrator cannot be demoted.' });
+    }
+  }
+
   let updated;
   try {
     updated = await UserModel.update(id, {
       ...(username !== undefined && { username: username.trim() }),
       ...(email !== undefined && { email: email.trim() }),
+      ...(role !== undefined && { role }),
     });
   } catch (err) {
     if (isDuplicate(err)) {

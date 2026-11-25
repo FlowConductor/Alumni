@@ -1,0 +1,85 @@
+<%- include('../partials/head', { title: 'Users and roles' }) %>
+<%- include('../partials/nav', { active: 'admin' }) %>
+
+<div class="page-header">
+  <div class="page-header__text">
+    <span class="eyebrow">Administration</span>
+    <h1>Users and roles<span class="count-badge"><%= users.length %></span></h1>
+    <p class="page-subtitle">
+      A role decides what an account may do; the menu beside each name changes it. An
+      account can never change its own role, and the last administrator cannot be
+      demoted or deleted.
+    </p>
+  </div>
+  <div class="page-header__actions">
+    <a class="btn btn--secondary" href="/users/new">New user</a>
+  </div>
+</div>
+
+<%- include('_tabs', { tab: 'users' }) %>
+
+<% if (notice) { %>
+  <div class="alert alert--success" role="status"><%= notice %></div>
+<% } %>
+<% if (error) { %>
+  <div class="alert alert--danger" role="alert"><%= error %></div>
+<% } %>
+
+<div class="table-wrap">
+  <table class="data">
+    <caption><%= users.length %> accounts, ordered by id</caption>
+    <thead>
+      <tr>
+        <th scope="col">Id</th>
+        <th scope="col">Username</th>
+        <th scope="col">Email</th>
+        <th scope="col">Role</th>
+        <th scope="col">Assign role</th>
+        <th scope="col">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% users.forEach((user) => { %>
+        <% const isSelf = currentUser.id === user.id; %>
+        <tr>
+          <td class="num"><%= user.id %></td>
+          <td>
+            <a href="/users/<%= user.id %>"><%= user.username %></a>
+            <% if (isSelf) { %><span class="pill pill--neutral">you</span><% } %>
+          </td>
+          <td><a href="mailto:<%= user.email %>"><%= user.email %></a></td>
+          <td><span class="pill pill--<%= user.role %>"><%= user.role %></span></td>
+          <td>
+            <% if (isSelf) { %>
+              <span class="card__meta">Own role is locked to prevent a lockout</span>
+            <% } else { %>
+              <form class="inline-form" method="POST" action="/admin/users/<%= user.id %>/role">
+                <label class="visually-hidden" for="role-<%= user.id %>">Role for <%= user.username %></label>
+                <select id="role-<%= user.id %>" name="role">
+                  <% roles.forEach((role) => { %>
+                    <option value="<%= role %>" <%= user.role === role ? 'selected' : '' %>><%= role %></option>
+                  <% }); %>
+                </select>
+                <button class="btn btn--small btn--secondary" type="submit">Save</button>
+              </form>
+            <% } %>
+          </td>
+          <td>
+            <div class="actions">
+              <a class="btn btn--link" href="/users/<%= user.id %>">View</a>
+              <a class="btn btn--link" href="/users/<%= user.id %>/edit">Edit</a>
+              <% if (!isSelf) { %>
+                <form method="POST" action="/admin/users/<%= user.id %>/delete"
+                      onsubmit="return confirm('Delete <%= user.username %>? This cannot be undone.');">
+                  <button class="btn btn--link btn--link-danger" type="submit">Delete</button>
+                </form>
+              <% } %>
+            </div>
+          </td>
+        </tr>
+      <% }); %>
+    </tbody>
+  </table>
+</div>
+
+<%- include('../partials/footer') %>

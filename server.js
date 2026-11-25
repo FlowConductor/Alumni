@@ -15,6 +15,7 @@ const apiJobPostingsRoutes = require('./src/routes/apiJobPostings');
 const apiJobPostingResourcesRoutes = require('./src/routes/apiJobPostingResources');
 const apiApplicationsRoutes = require('./src/routes/apiApplications');
 const jobPostingsRoutes = require('./src/routes/jobPostings');
+const adminRoutes = require('./src/routes/admin');
 const openapiSpec = require('./src/docs/openapi');
 const requestLogger = require('./src/middleware/logger');
 const notFoundHandler = require('./src/middleware/notFound');
@@ -59,6 +60,7 @@ app.use((req, res, next) => {
   res.locals.canManage = role === 'staff' || role === 'admin';
   res.locals.canDelete = role === 'admin';
   res.locals.canApply = role === 'alumni';
+  res.locals.isAdmin = role === 'admin';
 
   next();
 });
@@ -77,6 +79,7 @@ app.use('/api/job-postings', apiJobPostingsRoutes);
 app.use('/api/job-postings', apiJobPostingResourcesRoutes);
 app.use('/api/applications', apiApplicationsRoutes);
 app.use('/job-postings', jobPostingsRoutes);
+app.use('/admin', adminRoutes);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(openapiSpec));
 
 // 404 Guardian: nothing matched above. 5xx Guardian: terminal error handler.

@@ -1,0 +1,81 @@
+<%- include('../partials/head', { title: 'Applications' }) %>
+<%- include('../partials/nav', { active: 'admin' }) %>
+
+<div class="page-header">
+  <div class="page-header__text">
+    <span class="eyebrow">Administration</span>
+    <h1>Applications<span class="count-badge"><%= applications.length %></span></h1>
+    <p class="page-subtitle">
+      Triage every application in one table: move a record through the pipeline, open the
+      posting it belongs to, or close an application that will not proceed.
+    </p>
+  </div>
+  <div class="page-header__actions">
+    <a class="btn btn--secondary" href="/job-postings">Postings</a>
+  </div>
+</div>
+
+<%- include('_tabs', { tab: 'applications' }) %>
+
+<% if (notice) { %>
+  <div class="alert alert--success" role="status"><%= notice %></div>
+<% } %>
+<% if (error) { %>
+  <div class="alert alert--danger" role="alert"><%= error %></div>
+<% } %>
+
+<% if (applications.length === 0) { %>
+  <div class="empty-state">
+    <p>No applications yet.</p>
+    <a class="btn btn--secondary" href="/job-postings">Look at the postings</a>
+  </div>
+<% } else { %>
+  <div class="table-wrap">
+    <table class="data">
+      <caption><%= applications.length %> applications, newest first</caption>
+      <thead>
+        <tr>
+          <th scope="col">Id</th>
+          <th scope="col">Applicant</th>
+          <th scope="col">Posting</th>
+          <th scope="col">Company</th>
+          <th scope="col">Applied</th>
+          <th scope="col">Status</th>
+          <th scope="col">Change status</th>
+          <th scope="col">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% applications.forEach((application) => { %>
+          <tr>
+            <td class="num"><%= application.id %></td>
+            <td><a href="/users/<%= application.userId %>"><%= application.applicantUsername %></a></td>
+            <td><a href="/job-postings/<%= application.jobPostingId %>"><%= application.jobTitle %></a></td>
+            <td><%= application.jobCompany %></td>
+            <td class="num"><%= formatDate(application.createdAt) %></td>
+            <td><span class="pill pill--<%= application.status %>"><%= application.status %></span></td>
+            <td>
+              <form class="inline-form" method="POST" action="/admin/applications/<%= application.id %>/status">
+                <label class="visually-hidden" for="status-<%= application.id %>">Status for application <%= application.id %></label>
+                <select id="status-<%= application.id %>" name="status">
+                  <% statuses.forEach((status) => { %>
+                    <option value="<%= status %>" <%= application.status === status ? 'selected' : '' %>><%= status %></option>
+                  <% }); %>
+                </select>
+                <button class="btn btn--small btn--secondary" type="submit">Save</button>
+              </form>
+            </td>
+            <td>
+              <form method="POST" action="/admin/applications/<%= application.id %>/delete"
+                    onsubmit="return confirm('Remove application <%= application.id %>?');">
+                <button class="btn btn--link btn--link-danger" type="submit">Delete</button>
+              </form>
+            </td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+<% } %>
+
+<%- include('../partials/footer') %>

@@ -8,6 +8,8 @@
 const db = require('../db/database');
 
 const SELECT = 'SELECT id, username, email, role FROM users';
+// The roles the users.role column accepts (migration 007).
+const ROLES = ['alumni', 'employer', 'staff', 'admin'];
 // The one query allowed to read password_hash (sign-in only).
 const SELECT_CREDENTIALS = 'SELECT id, username, email, role, password_hash FROM users';
 
@@ -39,6 +41,13 @@ async function findCredentials(email) {
   return rows[0] || null;
 }
 
+// READ (aggregate) — how many accounts hold a given role; the admin panel uses it
+// to refuse demoting the last administrator.
+async function countByRole(role) {
+  const [rows] = await db.query('SELECT COUNT(*) AS total FROM users WHERE role = ?', [role]);
+  return Number(rows[0].total);
+}
+
 // UPDATE
 async function update(id, fields) {
   const sets = [];
@@ -51,6 +60,15 @@ async function update(id, fields) {
   if (fields.email !== undefined) {
     sets.push('email = ?');
     values.push(fields.email);
+  }
+  // Role is a privilege, so the caller (the admin panel) is responsible for the
+  // authorization rules in ddd.md section 8; the model only whitelists the value.
+  if (fields.role !== undefined) {
+    if (!ROLES.includes(fields.role)) {
+      throw new Error(`Unknown role: ${fields.role}`);
+    }
+    sets.push('role = ?');
+    values.push(fields.role);
   }
 
   if (sets.length === 0) {
@@ -77,4 +95,4 @@ async function remove(id) {
   return user;
 }
 
-module.exports = { create, findAll, findById, findCredentials, update, remove };
+module.exports = { ROLES, create, findAll, findById, findCredentials, countByRole, update, remove };

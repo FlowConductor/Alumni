@@ -1,0 +1,125 @@
+<%- include('../partials/head', { title: 'Donations' }) %>
+<%- include('../partials/nav', { active: 'admin' }) %>
+
+<div class="page-header">
+  <div class="page-header__text">
+    <span class="eyebrow">Administration</span>
+    <h1>Donations<span class="count-badge"><%= donations.length %></span></h1>
+    <p class="page-subtitle">
+      Record a transfer that arrived outside the portal, move a pledge to completed once the
+      money lands, and remove a mis-keyed row while it is still pending.
+    </p>
+  </div>
+  <div class="page-header__actions">
+    <a class="btn btn--secondary" href="/admin">Overview</a>
+  </div>
+</div>
+
+<%- include('_tabs', { tab: 'donations' }) %>
+
+<% if (notice) { %>
+  <div class="alert alert--success" role="status"><%= notice %></div>
+<% } %>
+<% if (error) { %>
+  <div class="alert alert--danger" role="alert"><%= error %></div>
+<% } %>
+
+<form class="form" method="POST" action="/admin/donations">
+  <fieldset>
+    <legend>Record a donation</legend>
+    <div class="field">
+      <label for="user_id">Donor</label>
+      <select id="user_id" name="user_id" required>
+        <option value="">Choose a member</option>
+        <% users.forEach((user) => { %>
+          <option value="<%= user.id %>"><%= user.id %> · <%= user.username %> (<%= user.role %>)</option>
+        <% }); %>
+      </select>
+      <p class="hint">The donor must already exist in the directory.</p>
+    </div>
+    <div class="field">
+      <label for="amount">Amount</label>
+      <input id="amount" name="amount" type="number" min="1" step="0.01" required>
+    </div>
+    <div class="field">
+      <label for="currency">Currency</label>
+      <input id="currency" name="currency" type="text" value="TRY" maxlength="3">
+    </div>
+    <div class="field">
+      <label for="campaign">Campaign</label>
+      <input id="campaign" name="campaign" type="text" placeholder="Scholarship fund" maxlength="120">
+      <p class="hint">Optional; leave empty for an unrestricted gift.</p>
+    </div>
+    <div class="field">
+      <label for="status">Status</label>
+      <select id="status" name="status">
+        <% statuses.forEach((status) => { %>
+          <option value="<%= status %>" <%= status === 'pending' ? 'selected' : '' %>><%= status %></option>
+        <% }); %>
+      </select>
+    </div>
+  </fieldset>
+  <div class="form-actions">
+    <a class="btn btn--secondary" href="/admin/donations">Cancel</a>
+    <button class="btn btn--primary" type="submit">Record donation</button>
+  </div>
+</form>
+
+<% if (donations.length === 0) { %>
+  <div class="empty-state">
+    <p>No donations recorded yet.</p>
+  </div>
+<% } else { %>
+  <div class="table-wrap">
+    <table class="data">
+      <caption><%= donations.length %> donations, newest first</caption>
+      <thead>
+        <tr>
+          <th scope="col">Id</th>
+          <th scope="col">Donor</th>
+          <th scope="col">Amount</th>
+          <th scope="col">Campaign</th>
+          <th scope="col">Recorded</th>
+          <th scope="col">Status</th>
+          <th scope="col">Change status</th>
+          <th scope="col">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% donations.forEach((donation) => { %>
+          <tr>
+            <td class="num"><%= donation.id %></td>
+            <td><a href="/users/<%= donation.userId %>"><%= donation.donorUsername %></a></td>
+            <td class="num"><%= donation.amount.toLocaleString('en-US') %> <%= donation.currency %></td>
+            <td><%= donation.campaign || '—' %></td>
+            <td class="num"><%= formatDate(donation.donatedAt) %></td>
+            <td><span class="pill pill--<%= donation.status === 'completed' ? 'accepted' : donation.status %>"><%= donation.status %></span></td>
+            <td>
+              <form class="inline-form" method="POST" action="/admin/donations/<%= donation.id %>/status">
+                <label class="visually-hidden" for="dstatus-<%= donation.id %>">Status for donation <%= donation.id %></label>
+                <select id="dstatus-<%= donation.id %>" name="status">
+                  <% statuses.forEach((status) => { %>
+                    <option value="<%= status %>" <%= donation.status === status ? 'selected' : '' %>><%= status %></option>
+                  <% }); %>
+                </select>
+                <button class="btn btn--small btn--secondary" type="submit">Save</button>
+              </form>
+            </td>
+            <td>
+              <% if (donation.status === 'completed') { %>
+                <span class="card__meta">Locked once completed</span>
+              <% } else { %>
+                <form method="POST" action="/admin/donations/<%= donation.id %>/delete"
+                      onsubmit="return confirm('Remove donation <%= donation.id %>?');">
+                  <button class="btn btn--link btn--link-danger" type="submit">Delete</button>
+                </form>
+              <% } %>
+            </td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+<% } %>
+
+<%- include('../partials/footer') %>

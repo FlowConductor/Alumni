@@ -1,0 +1,7 @@
+<%# Panel navigation shared by the admin pages. `tab` is the current section. %>
+<nav class="panel-tabs" aria-label="Admin sections">
+  <a class="panel-tab <%= tab === 'overview' ? 'is-active' : '' %>" href="/admin">Overview</a>
+  <a class="panel-tab <%= tab === 'users' ? 'is-active' : '' %>" href="/admin/users">Users &amp; roles</a>
+  <a class="panel-tab <%= tab === 'applications' ? 'is-active' : '' %>" href="/admin/applications">Applications</a>
+  <a class="panel-tab <%= tab === 'donations' ? 'is-active' : '' %>" href="/admin/donations">Donations</a>
+</nav>

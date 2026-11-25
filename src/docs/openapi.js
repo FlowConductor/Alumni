@@ -198,11 +198,20 @@ module.exports = {
       put: {
         tags: ['Users'],
         summary: 'Update a user by id (partial updates allowed)',
+        description:
+          'Accepts username, email, and (administrators only) role. See UserRoleInput for the role rules.',
         parameters: [{ $ref: '#/components/parameters/UserId' }],
         requestBody: {
           required: true,
           content: {
-            'application/json': { schema: { $ref: '#/components/schemas/UserInput' } },
+            'application/json': {
+              schema: {
+                oneOf: [
+                  { $ref: '#/components/schemas/UserInput' },
+                  { $ref: '#/components/schemas/UserRoleInput' },
+                ],
+              },
+            },
           },
         },
         responses: {
@@ -212,17 +221,29 @@ module.exports = {
               'application/json': { schema: { $ref: '#/components/schemas/User' } },
             },
           },
+          400: { description: 'Validation error, including an unknown role' },
+          403: { description: 'Only an administrator may change a role' },
           404: { description: 'User not found' },
+          409: { description: 'The last administrator cannot be demoted' },
         },
       },
       patch: {
         tags: ['Users'],
         summary: 'Partially update a user by id',
+        description:
+          'Accepts username, email, and (administrators only) role. See UserRoleInput for the role rules.',
         parameters: [{ $ref: '#/components/parameters/UserId' }],
         requestBody: {
           required: true,
           content: {
-            'application/json': { schema: { $ref: '#/components/schemas/UserInput' } },
+            'application/json': {
+              schema: {
+                oneOf: [
+                  { $ref: '#/components/schemas/UserInput' },
+                  { $ref: '#/components/schemas/UserRoleInput' },
+                ],
+              },
+            },
           },
         },
         responses: {
@@ -232,7 +253,10 @@ module.exports = {
               'application/json': { schema: { $ref: '#/components/schemas/User' } },
             },
           },
+          400: { description: 'Validation error, including an unknown role' },
+          403: { description: 'Only an administrator may change a role' },
           404: { description: 'User not found' },
+          409: { description: 'The last administrator cannot be demoted' },
         },
       },
       delete: {
@@ -929,7 +953,16 @@ module.exports = {
           email: { type: 'string', format: 'email', example: 'senol@example.com' },
         },
         description:
-          'Role is not part of this body: new users default to alumni. Password is only accepted by the register form at POST /register.',
+          'Creation only accepts username and email; new users always default to alumni. Password is only accepted by the register form at POST /register.',
+      },
+      UserRoleInput: {
+        type: 'object',
+        required: ['role'],
+        properties: {
+          role: { type: 'string', enum: ['alumni', 'employer', 'staff', 'admin'], example: 'staff' },
+        },
+        description:
+          'Partial update body accepted on PUT/PATCH /api/users/{id}. Changing a role needs the admin role on top of the staff gate; an administrator cannot change its own role, and the last administrator cannot be demoted (409).',
       },
       Donation: {
         type: 'object',
