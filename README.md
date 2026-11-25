@@ -163,7 +163,10 @@ MIS/
     │   ├── notFound.js     404 Guardian: unmatched routes -> JSON or the 404 page
     │   ├── errorHandler.js 5xx Guardian: terminal error handler, JSON or error page
     │   └── errorLog.js     Appends error entries to logs/error.logs
+    ├── lib/                Small shared helpers with no domain knowledge
+    │   └── password.js     scrypt password hashing (no dependency; hash only, verification lands with login)
     ├── controllers/        Controllers
+    │   ├── auth.controller.js     Auth controller: the self-service register flow for /register
     │   ├── user.controller.js      User controller: web CRUD (HTML pages + forms) for /users
     │   ├── apiUser.controller.js   ApiUser controller: JSON CRUD for /api/users
     │   ├── announcement.controller.js    Announcement controller: web CRUD (HTML pages + forms) for /announcements
@@ -173,6 +176,7 @@ MIS/
     │   └── apiApplication.controller.js  ApiApplication controller: JSON CRUD for /api/applications (direct + nested under users and job-postings)
     │   └── jobPosting.controller.js  JobPosting controller: web CRUD + apply form for /job-postings
     ├── routes/             Route definitions (mapped to controllers)
+    │   ├── auth.js         /register routes -> Auth controller
     │   ├── general.js      / , /about , /hello , /hello/:name , /sum/... , /api/health
     │   ├── alumni.js       GET/POST /alumni (in-memory alumni model + seed data)
     │   ├── apiUsers.js     /api/users routes -> ApiUser controller
@@ -196,6 +200,8 @@ MIS/
     │   ├── about.ejs              About page (GET /about)
     │   ├── error.ejs              Error page (400/404/409/500)
     │   ├── 404.ejs                Generic 404 page rendered by the 404 Guardian
+    │   ├── auth/
+    │   │   └── register.ejs       Registration form (GET /register)
     │   ├── partials/              Shared layout fragments included by every page
     │   │   ├── head.ejs           <head>: title, viewport, stylesheet
     │   │   ├── nav.ejs            Skip link, top navigation, opens <main>
@@ -383,6 +389,8 @@ The backend's development server (Express) exposes the following starter routes 
 | DELETE | `/api/users/{id}` | Deletes the user with the given id and returns the removed record, or `404` if not found |
 | PUT / PATCH | `/api/users/{id}` | Updates a user by id. Request body: `username` and/or `email` (partial updates allowed). Returns the updated record, or `404` if the id does not exist |
 | POST   | `/api/users` | Creates a user. Request body: `username` and `email` (both required). Returns `201` with `{"username": "...", "email": "..."}`; duplicate username/email returns `409`. Users are stored in the MySQL `users` table |
+| GET    | `/register` | Registration form (EJS view: `auth/register.ejs`) — username, email, password, confirmation |
+| POST   | `/register` | Creates an account: validates the input, hashes the password with scrypt, stores the role `alumni`, then redirects to `/users?registered=<username>`. `400` with every failing rule on the form, `409` if the username or email is taken |
 | GET    | `/about` | About page (EJS view: `about.ejs`) — what the portal is, what is implemented, what is not |
 | GET    | `/alumni` | Returns the list of alumni records (JSON; in-memory store with seed data) |
 | POST   | `/alumni` | Creates an alumni record. Request body: `name` (required), `graduationYear` (integer, optional), `email` (optional). Returns `201` with the created record |
@@ -401,6 +409,7 @@ Every page is server-rendered with EJS and styled by one stylesheet, `public/css
 | Page | Route | Layout |
 |------|-------|--------|
 | Home | `/` | Hero with the tagline, three module cards, developer links |
+| Register | `/register` | Two fieldsets (Your record, Password) with hinted fields and an inline error list on failure |
 | About | `/about` | Long-form prose: two products in one, what is implemented, what is not |
 | Alumni directory | `/users` | Page header with count badge and one primary action, dense table, empty state |
 | User record | `/users/{id}` | Profile header with an initials avatar, definition list, action sidebar |
@@ -441,6 +450,17 @@ The 120-character limit is enforced in three places: the API controller (`apiJob
 |-------|----------|------|--------------|
 | `username` | Yes | Non-empty string, unique | `400` if missing, `409` if taken |
 | `email` | Yes | Valid address, unique | `400` if missing or malformed, `409` if taken |
+
+### Registration
+
+| Field | Required | Rule | On violation |
+|-------|----------|------|--------------|
+| `username` | Yes | 3–100 characters: letters, digits, dot, underscore, hyphen. Unique | `400` with the rule listed, `409` if taken |
+| `email` | Yes | Valid address, at most 255 characters. Unique | `400` with the rule listed, `409` if taken |
+| `password` | Yes | At least 8 characters, at least one letter and one digit, at most 200 characters | `400` with the rule listed |
+| `password_confirm` | Yes | Must match `password` | `400` — `Field "password_confirm" must match the password.` |
+
+Every failing rule is reported at once, the form echoes back the username and email, and the password is never echoed. The password is stored only as an scrypt hash (`scrypt$<salt>$<hash>`, see `src/lib/password.js`); the hash is never selected by a model read, never returned by the API, and never written to a log.
 
 ### Job Application
 
@@ -619,6 +639,15 @@ Contributions are welcome. Since the project has no code yet, the most valuable 
 **TBD** — the license for this project has not been chosen yet. Until a license is decided and a `LICENSE` file is added, all rights are reserved.
 
 ## Changelog
+
+### 2026-11-11 — Registration
+
+- New route and page `GET /register` with fieldsets for the record and the password, hinted inputs, and an inline list of every failing rule.
+- `POST /register` validates username (3–100 characters), email, password (8+ characters, letter and digit), and confirmation; it reports all failures at once and echoes back the username and email without ever echoing the password.
+- Passwords are hashed with scrypt from the Node standard library (`src/lib/password.js`), stored as `scrypt$<salt>$<hash>`; the hash is never selected by a model read or returned by the API.
+- Migration `007_add_auth_fields_to_users.sql` adds `password_hash` (nullable) and `role` (`ENUM`, default `alumni`). Registration always writes `alumni`; a visitor can never choose a role.
+- The User model now reads and returns `role`; the users table shows a role pill per record, the detail page shows it in the identity list, and Swagger documents it as read-only. The registration success message appears on `/users?registered=<username>`.
+- No sign-in yet: `password_hash` is stored, but there is no login form, session, or role enforcement.
 
 ### 2026-11-11 — Subpages redesigned on the design system
 

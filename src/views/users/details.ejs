@@ -9,7 +9,10 @@
   <div class="avatar" aria-hidden="true"><%= initials(user.username) %></div>
   <div class="profile-header__text">
     <h1><%= user.username %></h1>
-    <p>Record #<%= user.id %> · <a href="mailto:<%= user.email %>"><%= user.email %></a></p>
+    <p>
+      Record #<%= user.id %> · <a href="mailto:<%= user.email %>"><%= user.email %></a> ·
+      <span class="pill pill--<%= user.role %>"><%= user.role %></span>
+    </p>
   </div>
 </div>
 
@@ -25,6 +28,10 @@
         <div>
           <dt>Email</dt>
           <dd><a href="mailto:<%= user.email %>"><%= user.email %></a></dd>
+        </div>
+        <div>
+          <dt>Role</dt>
+          <dd><span class="pill pill--<%= user.role %>"><%= user.role %></span></dd>
         </div>
         <div>
           <dt>Record id</dt>

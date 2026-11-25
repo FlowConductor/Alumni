@@ -1,15 +1,19 @@
 // User Model — MVC model layer for users, backed by the MySQL `users` table
-// (see ddd.md and src/db/migrations/001_create_users_table.sql).
+// (see ddd.md and src/db/migrations/001_create_users_table.sql plus
+// 007_add_auth_fields_to_users.sql for password_hash and role).
+//
+// Reads never select password_hash: the hash must not travel to a view, a JSON
+// response, or a log line. Only the register flow writes it.
 
 const db = require('../db/database');
 
-const SELECT = 'SELECT id, username, email FROM users';
+const SELECT = 'SELECT id, username, email, role FROM users';
 
 // CREATE
-async function create({ username, email }) {
+async function create({ username, email, password_hash = null, role = 'alumni' }) {
   const [result] = await db.query(
-    'INSERT INTO users (username, email) VALUES (?, ?)',
-    [username, email]
+    'INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?)',
+    [username, email, password_hash, role]
   );
   const [rows] = await db.query(`${SELECT} WHERE id = ?`, [result.insertId]);
   return rows[0];

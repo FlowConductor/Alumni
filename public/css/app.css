@@ -586,6 +586,26 @@ table.data .truncate {
   color: var(--color-danger);
 }
 
+.pill--alumni {
+  background: var(--color-surface-sunken);
+  color: var(--color-ink-secondary);
+}
+
+.pill--staff {
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+.pill--admin {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+.pill--employer {
+  background: var(--color-accent-soft);
+  color: var(--color-warning);
+}
+
 .count-badge {
   display: inline-block;
   margin-left: var(--space-sm);
@@ -685,6 +705,13 @@ table.data .truncate {
 
 .field .hint {
   margin: var(--space-xs) 0 0;
+  color: var(--color-ink-mute);
+  font-size: 12px;
+}
+
+.form-note {
+  max-width: 640px;
+  margin-top: var(--space-lg);
   color: var(--color-ink-mute);
   font-size: 12px;
 }

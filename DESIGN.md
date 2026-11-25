@@ -383,6 +383,7 @@ Portraits are square (1:1), cropped to the face, 96px in tables and 160px on a p
 - **Label** (`{form-label}`): above the input, `{typography.label}`, `{colors.ink-secondary}`, with `{spacing.xs}` gap. Required fields are marked with a text suffix `(required)`, not an asterisk alone.
 - **Error text**: below the input, `{typography.body-sm}`, `{colors.danger}`, prefixed by the field name: `Field "title" must be at most 120 characters.`
 - Forms are single-column. Fieldsets group related fields with a `{typography.heading-lg}` legend and `{spacing.xl}` separation.
+- **Form note**: one paragraph below the form at `{typography.body-sm}` in `{colors.ink-mute}`, for caveats that are not field errors (for example, that no verification email is sent yet).
 
 ### Navigation
 - **Utility bar** (`{utility-bar}`): a white strip above the navy bar with the faculty on the left and the department on the right, at label size in Ink Mute. It carries the institutional context so the navy bar can stay short.
@@ -400,6 +401,7 @@ Portraits are square (1:1), cropped to the face, 96px in tables and 160px on a p
 ### Pills, Tags, and Chips
 - **Status pill** (`{pill-status-open}`, `{pill-status-closed}`): `{rounded.pill}`, `{typography.label}`, `2px 10px` padding. `open` is green on green-soft; `closed` is mute on sunken. Application states map the same way: `pending` warning, `reviewed` navy-soft, `accepted` success, `rejected` danger.
 - **Count badge**: same shape, `{colors.primary-soft}` fill with `{colors.primary}` text, used for row counts in section headings.
+- **Role pill**: the same shape, one class per role — `alumni` is mute on sunken, `staff` navy on navy-soft, `admin` white on navy (the only filled pill in the system), `employer` warning on gold-soft. It appears in the directory table, in the record header, and in the identity list, so a role can be read at a glance.
 - Pills are never interactive. If it can be clicked, it is a button or a link.
 
 ### Signature Components

@@ -6,7 +6,10 @@ const UserModel = require('../models/user.model');
 
 // READ (all) — view: src/views/users/index.ejs
 async function list(req, res) {
-  res.render('users/index', { users: await UserModel.findAll() });
+  res.render('users/index', {
+    users: await UserModel.findAll(),
+    registered: req.query.registered || null,
+  });
 }
 
 // READ (one) — view: src/views/users/details.ejs

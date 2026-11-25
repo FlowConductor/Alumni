@@ -903,6 +903,12 @@ module.exports = {
           id: { type: 'integer' },
           username: { type: 'string', example: 'senol' },
           email: { type: 'string', format: 'email', example: 'senol@example.com' },
+          role: {
+            type: 'string',
+            enum: ['alumni', 'employer', 'staff', 'admin'],
+            description:
+              'Read-only for now. Registration always assigns alumni; changing a role is an administrator action (ddd.md section 8).',
+          },
         },
       },
       UserCreated: {
@@ -919,6 +925,8 @@ module.exports = {
           username: { type: 'string', example: 'senol' },
           email: { type: 'string', format: 'email', example: 'senol@example.com' },
         },
+        description:
+          'Role is not part of this body: new users default to alumni. Password is only accepted by the register form at POST /register.',
       },
       Donation: {
         type: 'object',

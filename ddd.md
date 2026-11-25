@@ -1,6 +1,6 @@
 # DDD — MIS Alumni Portal (Basic Domain Design)
 
-Status: implemented. The `users`, `donate`, `announcements`, `job_postings`, and `job_applications` tables exist in MySQL (migrations 001–006 in `src/db/migrations/`). All five models are backed by their tables; Donation, Job Posting, and Job Application endpoints are implemented (JSON API, direct and nested routes). Validation rules are listed in section 7. User roles are designed but **not implemented** — there is no `role` column and no authentication yet (section 8).
+Status: implemented. The `users`, `donate`, `announcements`, `job_postings`, and `job_applications` tables exist in MySQL (migrations 001–006 in `src/db/migrations/`). All five models are backed by their tables; Donation, Job Posting, and Job Application endpoints are implemented (JSON API, direct and nested routes). Validation rules are listed in section 7. `password_hash` and `role` were added by migration 007 and the self-service register flow fills both; sign-in and role enforcement are still **not implemented** (section 8).
 
 ## 1. Ubiquitous Language
 
@@ -31,10 +31,10 @@ Status: implemented. The `users`, `donate`, `announcements`, `job_postings`, and
 ### User (aggregate root, User Management context)
 
 - Identity: `id`.
-- Attributes: `username`, `email`, `role` (planned), `created_at`, `updated_at`.
-- Invariants: `username` is required and unique; `email` is required, unique, and a valid address; `role` is one of `alumni`, `employer`, `staff`, `admin` and defaults to `alumni` (planned).
+- Attributes: `username`, `email`, `password_hash` (never exposed), `role`, `created_at`, `updated_at`.
+- Invariants: `username` is required and unique; `email` is required, unique, and a valid address; `role` is one of `alumni`, `employer`, `staff`, `admin` and defaults to `alumni`; a password is stored only as an scrypt hash.
 - A User always has exactly one Role. Roles are described in section 8.
-- Current reference implementation: `src/models/user.model.js` (username and email only — the Role is not stored yet).
+- Current reference implementation: `src/models/user.model.js` reads `id`, `username`, `email`, and `role` and never selects `password_hash`; `src/lib/password.js` produces the hash; `src/controllers/auth.controller.js` owns the register flow.
 
 ### Donation (entity, Fundraising context)
 
@@ -82,18 +82,21 @@ CREATE TABLE users (
 ) ENGINE=InnoDB;
 ```
 
-#### users.role — planned, not applied
+#### users.password_hash and users.role — applied by migration 007
 
 | Column | Type | Constraints |
 |--------|------|-------------|
+| password_hash | VARCHAR(255) | NULL — nullable so pre-existing records survive; an account without a hash cannot sign in |
 | role | ENUM('alumni','employer','staff','admin') | NOT NULL, DEFAULT 'alumni' |
 
 ```sql
+-- src/db/migrations/007_add_auth_fields_to_users.sql
 ALTER TABLE users
-  ADD COLUMN role ENUM('alumni','employer','staff','admin') NOT NULL DEFAULT 'alumni';
+  ADD COLUMN password_hash VARCHAR(255) NULL AFTER email,
+  ADD COLUMN role ENUM('alumni','employer','staff','admin') NOT NULL DEFAULT 'alumni' AFTER password_hash;
 ```
 
-This is the migration to write when roles are implemented (planned `007_add_role_to_users.sql`). Nothing reads the column today: no code path checks a Role, and every route is open.
+`password_hash` stores `scrypt$<salt>$<hash>` (see `src/lib/password.js`) and is never part of a model read. `role` is written only by the register flow, which always writes `'alumni'`; the API does not accept a role in its request body. No code path reads the Role yet — the column exists, the enforcement does not.
 
 ### donate table
 
@@ -204,7 +207,7 @@ users (1) ────< job_applications (N) >──── (1) job_postings
 
 ## 6. Future Considerations (TBD)
 
-- Passwords/authentication on `users` (e.g., a `password_hash` column) — not decided yet. Roles are meaningless without it.
+- Sign-in and sessions: `password_hash` is stored, but there is no login form, no session, and no password reset or verification email yet. Roles are meaningless without them.
 - Multi-role accounts: an alumnus who also works for the department currently collapses into `staff`. A `user_roles` join table is the escape hatch if the department needs both.
 - Audit trail for role changes: who changed whose Role, and when.
 - Role-aware UI: hide actions a Role cannot perform instead of only rejecting them server-side.
@@ -232,13 +235,14 @@ Enforced in `src/controllers/apiJobPosting.controller.js` (JSON API), `src/contr
 ### User and Job Application (summary)
 
 - **User** — `username` required and unique; `email` required, a valid address, and unique. Violations: `400` (missing/malformed) or `409` (duplicate).
-- **Role** (planned, section 8) — one of `alumni`, `employer`, `staff`, `admin`; defaults to `alumni`; only an `admin` may set it. Violations: `400` (unknown value) or `403` (not permitted).
+- **Role** (section 8) — one of `alumni`, `employer`, `staff`, `admin`; defaults to `alumni`; only an `admin` may set it. Violations: `400` (unknown value) or `403` (not permitted).
+- **Registration** (`POST /register`) — `username` 3–100 characters of letters, digits, dot, underscore, or hyphen; `email` a valid unique address; `password` at least 8 characters with at least one letter and one digit; `password_confirm` must match. Violations: `400` with every failing rule listed on the form, or `409` when the username or email is taken.
 - **Job Application** — `job_posting_id` and `user_id` required and must reference existing rows; one application per user per posting. Violations: `400` (missing/invalid), `404` (unknown posting or user), `409` (duplicate application).
 - **Deletion** — a User with donations or applications, and a Job Posting with applications, cannot be deleted: the foreign keys restrict it and the controllers answer `409`.
 
 ## 8. User Roles and Access Control
 
-Status: **designed, not implemented.** There is no `role` column, no authentication, and no authorization middleware; every route is open because the portal is assumed to run on a trusted network. The model below is the target once accounts exist, and it is written down now so that later work does not invent a second, contradictory one.
+Status: **partly implemented.** The `role` column exists (migration 007) and self-service registration always writes `alumni` with an scrypt password hash. There is still no sign-in, no session, and no authorization middleware, so every route remains open on the trusted network and no capability below is enforced. The matrix is the target once sign-in lands.
 
 ### The four roles
 
@@ -287,8 +291,8 @@ Three clarifications:
 
 ### Implementation plan (TBD)
 
-1. Migration `007_add_role_to_users.sql`: add the `role` column (section 4), `NOT NULL DEFAULT 'alumni'`.
-2. Extend the User model to select and map `role`; add `role` to the create and update paths, admin-only.
-3. Add `password_hash` and session authentication — without it a Role is just a label.
+1. ~~Migration adding the `role` column (section 4)~~ — done: `007_add_auth_fields_to_users.sql`, `NOT NULL DEFAULT 'alumni'`.
+2. ~~Extend the User model to select and map `role`~~ — done for reads; writing a Role is still admin-only work that waits for step 4.
+3. Add session authentication on top of `password_hash` (already stored as an scrypt hash by the register flow) — without a sign-in, a Role is just a label.
 4. Add a `requireRole(...roles)` middleware next to the logger and the guardians, then apply it to the write routes (`POST`, `PUT`, `PATCH`, `DELETE`).
 5. Add a role column and a role selector (admin only) to the web views, and a `role` field to the `User` and `UserInput` schemas in `src/docs/openapi.js`.

@@ -15,6 +15,13 @@
   </div>
 </div>
 
+<% if (registered) { %>
+  <div class="alert alert--success" role="status">
+    Account created for <strong><%= registered %></strong>. It was registered as an alumni
+    member.
+  </div>
+<% } %>
+
 <% if (users.length === 0) { %>
   <div class="empty-state">
     <p>No alumni on record yet.</p>
@@ -29,6 +36,7 @@
           <th scope="col">Id</th>
           <th scope="col">Username</th>
           <th scope="col">Email</th>
+          <th scope="col">Role</th>
           <th scope="col">Actions</th>
         </tr>
       </thead>
@@ -38,6 +46,7 @@
             <td class="num"><%= user.id %></td>
             <td><a href="/users/<%= user.id %>"><%= user.username %></a></td>
             <td><a href="mailto:<%= user.email %>"><%= user.email %></a></td>
+            <td><span class="pill pill--<%= user.role %>"><%= user.role %></span></td>
             <td>
               <div class="actions">
                 <a class="btn btn--link" href="/users/<%= user.id %>">View</a>
