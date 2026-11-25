@@ -2,31 +2,51 @@
 <%- include('../partials/nav', { active: 'users' }) %>
 
 <nav class="breadcrumb" aria-label="Breadcrumb">
-  <a href="/users">Users</a><span>/</span><a href="/users/<%= user.id %>"><%= user.username %></a><span>/</span>Edit
+  <a href="/users">Alumni directory</a><span>/</span><a href="/users/<%= user.id %>"><%= user.username %></a><span>/</span>Edit
 </nav>
 
 <div class="page-header">
   <div class="page-header__text">
-    <h1>Edit user</h1>
-    <p class="page-subtitle">Update the record for <%= user.username %>.</p>
+    <span class="eyebrow">Alumni directory</span>
+    <h1>Edit record</h1>
+    <p class="page-subtitle">Update the directory entry for <%= user.username %>.</p>
   </div>
 </div>
 
 <form class="form" method="POST" action="/users/<%= user.id %>">
-  <div class="field">
-    <label for="username">Username <span class="required">(required)</span></label>
-    <input type="text" id="username" name="username" value="<%= user.username %>" required autocomplete="off">
-  </div>
+  <fieldset>
+    <legend>Identity</legend>
 
-  <div class="field">
-    <label for="email">Email <span class="required">(required)</span></label>
-    <input type="email" id="email" name="email" value="<%= user.email %>" required autocomplete="off">
-  </div>
+    <div class="field">
+      <label for="username">Username <span class="required">(required)</span></label>
+      <input type="text" id="username" name="username" value="<%= user.username %>" required autocomplete="off">
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Contact</legend>
+
+    <div class="field">
+      <label for="email">Email <span class="required">(required)</span></label>
+      <input type="email" id="email" name="email" value="<%= user.email %>" required autocomplete="off">
+    </div>
+  </fieldset>
 
   <div class="form-actions">
     <button class="btn btn--primary" type="submit">Save changes</button>
     <a class="btn btn--secondary" href="/users/<%= user.id %>">Cancel</a>
   </div>
 </form>
+
+<div class="danger-zone">
+  <div class="danger-zone__text">
+    <h2>Delete this record</h2>
+    <p>Removing a graduate is permanent. Users with donations or applications cannot be deleted.</p>
+  </div>
+  <form method="POST" action="/users/<%= user.id %>/delete"
+        onsubmit="return confirm('Delete this user? This cannot be undone.');">
+    <button class="btn btn--danger" type="submit">Delete user</button>
+  </form>
+</div>
 
 <%- include('../partials/footer') %>

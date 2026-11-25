@@ -3,8 +3,9 @@
 
 <div class="page-header">
   <div class="page-header__text">
+    <span class="eyebrow">Community</span>
     <h1>Announcements<span class="count-badge"><%= announcements.length %></span></h1>
-    <p class="page-subtitle">Notices published to the alumni community.</p>
+    <p class="page-subtitle">Notices published to the alumni community, newest first.</p>
   </div>
   <div class="page-header__actions">
     <a class="btn btn--primary" href="/announcements/new">New announcement</a>
@@ -19,8 +20,8 @@
 <% } else { %>
   <% announcements.slice().reverse().forEach((announcement) => { %>
     <article class="card">
-      <h2 class="card__title"><%= announcement.title %></h2>
       <p class="card__meta">Published <%= formatDate(announcement.createdAt) %></p>
+      <h2 class="card__title"><%= announcement.title %></h2>
       <p class="card__body">
         <%= announcement.content.length > 240 ? announcement.content.slice(0, 240) + '…' : announcement.content %>
       </p>

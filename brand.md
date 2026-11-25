@@ -119,7 +119,7 @@ Contrast: body text must reach WCAG AA (4.5:1) against its background. Never use
 
 ### Typography
 
-**TBD** — no typeface is licensed yet. The interim stack is the system sans-serif, defined as tokens in [DESIGN.md](DESIGN.md) (`{typography.display-lg}` through `{typography.label}`). Two families maximum; a licensed humanist sans-serif would replace the system stack in DESIGN.md and in `public/css/app.css`, nowhere else.
+**TBD** — no typeface is licensed yet. The interim stack is the system sans-serif for all interface text, defined as tokens in [DESIGN.md](DESIGN.md) (`{typography.display-lg}` through `{typography.label}`), plus the system serif (`{typography.body-editorial}`) for long-form editorial text only: article bodies, the about page, and the hero lead. Two families maximum; a licensed humanist sans-serif would replace the system sans stack in DESIGN.md and in `public/css/app.css`, nowhere else.
 
 ### Imagery
 
@@ -187,6 +187,7 @@ The shared layout lives in `src/views/partials/` (`head.ejs`, `nav.ejs`, `footer
 |-------|--------|
 | Logo (SVG, light and dark) | TBD |
 | Design tokens (colours, type, radius, spacing) | Defined in [DESIGN.md](DESIGN.md); implemented in `public/css/app.css` |
+| Page furniture (utility bar, eyebrow, section head, danger zone) | Implemented in the EJS partials and `public/css/app.css` |
 | Typeface licence | TBD |
 | Social preview image | TBD |
 | Brand owner / approver | TBD — the department decides |

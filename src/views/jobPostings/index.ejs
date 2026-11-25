@@ -3,6 +3,7 @@
 
 <div class="page-header">
   <div class="page-header__text">
+    <span class="eyebrow">Career services</span>
     <h1>Job postings<span class="count-badge"><%= postings.length %></span></h1>
     <p class="page-subtitle">
       Opportunities shared by alumni and partner companies. Open postings accept applications.
@@ -21,15 +22,16 @@
 <% } else { %>
   <div class="table-wrap">
     <table class="data">
+      <caption><%= postings.length %> postings, ordered by id</caption>
       <thead>
         <tr>
-          <th>Id</th>
-          <th>Title</th>
-          <th>Company</th>
-          <th>City</th>
-          <th>Status</th>
-          <th>Posted by</th>
-          <th>Actions</th>
+          <th scope="col">Id</th>
+          <th scope="col">Title</th>
+          <th scope="col">Company</th>
+          <th scope="col">City</th>
+          <th scope="col">Status</th>
+          <th scope="col">Posted by</th>
+          <th scope="col">Actions</th>
         </tr>
       </thead>
       <tbody>

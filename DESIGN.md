@@ -83,12 +83,18 @@ typography:
     lineHeight: 1.5
     letterSpacing: 0
     fontFeature: tnum
+  body-editorial:
+    fontFamily: "'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, 'Times New Roman', serif"
+    fontSize: 17px
+    fontWeight: 400
+    lineHeight: 1.65
+    letterSpacing: 0
   label:
     fontFamily: "-apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
-    fontSize: 13px
+    fontSize: 12px
     fontWeight: 600
     lineHeight: 1.2
-    letterSpacing: 0.2px
+    letterSpacing: 0.3px
   button:
     fontFamily: "-apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
     fontSize: 14px
@@ -222,6 +228,24 @@ components:
     typography: "{typography.body-md}"
     rounded: "{rounded.md}"
     padding: 32px
+  utility-bar:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.ink-mute}"
+    typography: "{typography.label}"
+    rounded: "{rounded.xs}"
+    padding: 8px 24px
+  eyebrow:
+    backgroundColor: "{colors.canvas}"
+    textColor: "{colors.ink-mute}"
+    typography: "{typography.label}"
+    rounded: "{rounded.xs}"
+    padding: 0
+  danger-zone:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.ink}"
+    typography: "{typography.body-md}"
+    rounded: "{rounded.md}"
+    padding: 16px 24px
 ---
 
 # MIS Alumni Portal — Design System
@@ -278,6 +302,7 @@ Contrast: Ink on White is 16.6:1, Ink Mute on White is 6.0:1, On Primary on Depa
 
 ### Font Family
 - **UI and body:** the system stack — `-apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif`. No webfont is loaded, so pages render instantly on slow campus networks and nothing is licensed.
+- **Long-form editorial:** the system serif stack — `"Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif`. Used only for article bodies, the about page's prose, and the hero lead. It is not a webfont, so nothing is licensed or downloaded; it gives the record pages an editorial voice without leaving the system fonts.
 - **Code and ids:** `ui-monospace, SFMono-Regular, Menlo, Consolas, monospace`, used for record ids in tables and for the API examples in the documentation.
 - A licensed humanist sans-serif is **TBD**; if one is chosen it replaces the system stack in this file and in `public/css/app.css`, nowhere else.
 
@@ -290,7 +315,8 @@ Contrast: Ink on White is 16.6:1, Ink Mute on White is 6.0:1, On Primary on Depa
 - **Body Medium** (`{typography.body-md}` — 14px/400): the default for tables, forms, and navigation.
 - **Body Small** (`{typography.body-sm}` — 13px/400): metadata under a title, helper text under an input.
 - **Body Numeric** (`{typography.body-numeric}` — 14px/400, `tnum`): amounts, counts, dates, ids.
-- **Label** (`{typography.label}` — 13px/600, 0.2px tracking): form labels, table headers, status pills.
+- **Body Editorial** (`{typography.body-editorial}` — 17px serif, 1.65): article bodies, about-page prose, and the hero lead, one step up at 18px. The only place a serif appears; UI text stays in the sans stack.
+- **Label** (`{typography.label}` — 12px/600, 0.3px tracking): eyebrows, form labels, table headers, status pills, footer headings.
 - **Button** (`{typography.button}` — 14px/600): every button and link-styled action.
 
 ### Principles
@@ -309,6 +335,8 @@ The system stack renders as Segoe UI on Windows, SF Pro on macOS, and Roboto on 
 A 4px scale: `{spacing.xxs}` 2, `{spacing.xs}` 4, `{spacing.sm}` 8, `{spacing.md}` 12, `{spacing.lg}` 16, `{spacing.xl}` 24, `{spacing.xxl}` 32, `{spacing.huge}` 48. Component padding uses `md`/`lg`; gaps between cards use `lg`; section separation uses `xxl`; page top and bottom padding uses `huge`.
 
 ### Grid & Container
+Detail pages use a two-column split at desktop: main content on the left, an action and metadata sidebar on the right that sticks while the content scrolls (`position: sticky`, 24px offset). The sidebar drops below the content under 1024px.
+
 A single centred content column, max-width 1080px, with `{spacing.xl}` side padding below 1080px and `{spacing.lg}` below 640px. Detail pages use a two-column split at desktop (main content 2/3, metadata sidebar 1/3) that collapses to one column below 900px. Tables are full-width inside the column and scroll horizontally rather than wrapping cells.
 
 ### Whitespace Philosophy
@@ -346,6 +374,7 @@ Portraits are square (1:1), cropped to the face, 96px in tables and 160px on a p
 - **Card** (`{card}`): white, 1px `{colors.hairline}`, `{rounded.md}`, 20px padding. One record per card.
 - **Posting card** (`{card-posting}`): a card whose title is `{typography.heading-md}`, followed by company and city in `{typography.body-sm}` `{colors.ink-mute}`, a status pill on the right, and the description clamped to three lines.
 - **Table** (`{table-header}`, `{table-row}`): header row on `{colors.surface-sunken}` with `{typography.label}` in `{colors.ink-mute}`; body rows on white separated by 1px `{colors.hairline}`; hover row tinted `{colors.primary-soft}`.
+- **Danger zone** (`{danger-zone}`): a card with a `{colors.danger}` border, a short explanation, and one danger button. It sits below edit forms and is the only place a destructive action appears twice (header and editor).
 - **Empty state** (`{empty-state}`): centred `{colors.ink-mute}` copy plus one secondary action. Copy states the fact and offers the next step: `No job postings yet. Be the first to share one.`
 
 ### Inputs & Forms
@@ -356,10 +385,17 @@ Portraits are square (1:1), cropped to the face, 96px in tables and 160px on a p
 - Forms are single-column. Fieldsets group related fields with a `{typography.heading-lg}` legend and `{spacing.xl}` separation.
 
 ### Navigation
+- **Utility bar** (`{utility-bar}`): a white strip above the navy bar with the faculty on the left and the department on the right, at label size in Ink Mute. It carries the institutional context so the navy bar can stay short.
 - **Top bar** (`{nav-bar}`): Department Navy, white text, 12px/24px padding, product name at `{typography.heading-md}` on the left, section links at `{typography.body-md}` on the right.
 - **Active item**: white text with a 2px `{colors.accent}` bottom border. Inactive items are `rgba(255,255,255,0.78)`.
 - **Breadcrumb** on detail pages: `Job postings / Data Analyst` in `{typography.body-sm}`, `{colors.ink-mute}`, links in `{colors.primary}`.
 - No hamburger above 768px; below it, links collapse into a single menu button labelled `Menu`.
+
+### Headings and Page Furniture
+- **Eyebrow** (`{eyebrow}`): a label-size line above a page title that names the section (`Alumni directory`, `Career services`, `Community`, `About`). It replaces repeating the module name in the title itself.
+- **Page header**: title plus optional one-sentence subtitle, closed by a 1px `{colors.hairline}` rule. The rule is the page's first structural line.
+- **Section head**: a section title with an optional right-aligned meta line (`20 records, ordered by id`), closed by the same hairline rule. Used instead of bare `h2`s.
+- **Breadcrumb**: `Section / Record` in `{typography.body-sm}`, with the current record unlinked.
 
 ### Pills, Tags, and Chips
 - **Status pill** (`{pill-status-open}`, `{pill-status-closed}`): `{rounded.pill}`, `{typography.label}`, `2px 10px` padding. `open` is green on green-soft; `closed` is mute on sunken. Application states map the same way: `pending` warning, `reviewed` navy-soft, `accepted` success, `rejected` danger.
@@ -427,4 +463,4 @@ Portraits use `srcset` at 96px, 160px, and 320px with a square crop; the 96px va
 4. New screens start from an existing pattern — list page, detail page, or form — before inventing a layout.
 5. Every new component gets an entry in the frontmatter `components` map and a paragraph under Components.
 6. Check contrast before shipping: body text ≥ 4.5:1, large text and UI borders ≥ 3:1.
-7. If the `@google/design.md` CLI is available, run `npx @google/design.md lint DESIGN.md` after edits to keep the file valid. It is not installed in this project, so the frontmatter is validated by hand: every `{group.token}` reference must exist in the frontmatter map.
+7. If the `@google/design.md` CLI is available, run `npx @google/design.md lint DESIGN.md` after edits to keep the file valid. It is not installed in this project, so the frontmatter is validated by hand: every `group.token` reference in the prose must exist in the frontmatter map.

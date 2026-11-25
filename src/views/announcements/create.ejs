@@ -7,22 +7,28 @@
 
 <div class="page-header">
   <div class="page-header__text">
+    <span class="eyebrow">Community</span>
     <h1>New announcement</h1>
     <p class="page-subtitle">Write a notice for the alumni community. Both fields are required.</p>
   </div>
 </div>
 
 <form class="form" method="POST" action="/announcements">
-  <div class="field">
-    <label for="title">Title <span class="required">(required)</span></label>
-    <input type="text" id="title" name="title" required autocomplete="off">
-  </div>
+  <fieldset>
+    <legend>The notice</legend>
 
-  <div class="field">
-    <label for="content">Content <span class="required">(required)</span></label>
-    <textarea id="content" name="content" rows="8" required></textarea>
-    <p class="hint">Line breaks are preserved on the published page.</p>
-  </div>
+    <div class="field">
+      <label for="title">Title <span class="required">(required)</span></label>
+      <input type="text" id="title" name="title" required autocomplete="off">
+      <p class="hint">A single line. Sentence case, like a subject line.</p>
+    </div>
+
+    <div class="field">
+      <label for="content">Content <span class="required">(required)</span></label>
+      <textarea id="content" name="content" rows="10" required></textarea>
+      <p class="hint">Line breaks are preserved on the published page.</p>
+    </div>
+  </fieldset>
 
   <div class="form-actions">
     <button class="btn btn--primary" type="submit">Publish announcement</button>

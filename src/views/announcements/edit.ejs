@@ -7,26 +7,42 @@
 
 <div class="page-header">
   <div class="page-header__text">
+    <span class="eyebrow">Community</span>
     <h1>Edit announcement</h1>
-    <p class="page-subtitle">Changes are visible to the community immediately.</p>
+    <p class="page-subtitle">Changes are visible to the community as soon as you save.</p>
   </div>
 </div>
 
 <form class="form" method="POST" action="/announcements/<%= announcement.id %>">
-  <div class="field">
-    <label for="title">Title <span class="required">(required)</span></label>
-    <input type="text" id="title" name="title" value="<%= announcement.title %>" required autocomplete="off">
-  </div>
+  <fieldset>
+    <legend>The notice</legend>
 
-  <div class="field">
-    <label for="content">Content <span class="required">(required)</span></label>
-    <textarea id="content" name="content" rows="8" required><%= announcement.content %></textarea>
-  </div>
+    <div class="field">
+      <label for="title">Title <span class="required">(required)</span></label>
+      <input type="text" id="title" name="title" value="<%= announcement.title %>" required autocomplete="off">
+    </div>
+
+    <div class="field">
+      <label for="content">Content <span class="required">(required)</span></label>
+      <textarea id="content" name="content" rows="10" required><%= announcement.content %></textarea>
+    </div>
+  </fieldset>
 
   <div class="form-actions">
     <button class="btn btn--primary" type="submit">Save changes</button>
     <a class="btn btn--secondary" href="/announcements/<%= announcement.id %>">Cancel</a>
   </div>
 </form>
+
+<div class="danger-zone">
+  <div class="danger-zone__text">
+    <h2>Delete this announcement</h2>
+    <p>Permanently removes the notice from the community page.</p>
+  </div>
+  <form method="POST" action="/announcements/<%= announcement.id %>/delete"
+        onsubmit="return confirm('Delete this announcement? This cannot be undone.');">
+    <button class="btn btn--danger" type="submit">Delete announcement</button>
+  </form>
+</div>
 
 <%- include('../partials/footer') %>

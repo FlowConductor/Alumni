@@ -414,7 +414,9 @@ Every page is server-rendered with EJS and styled by one stylesheet, `public/css
 | 404 | any unmatched route | Centred error page with the request and the reason |
 | Error | 400 / 404 / 409 / 500 | Centred error page with the message |
 
-Design rules applied across the pages: one filled primary button per screen, hairline borders instead of shadows, status pills for state, tabular figures for ids and dates, destructive actions behind a confirmation prompt, and a skip link plus visible focus rings for keyboard users. The layout collapses to a single column below 1024px and to full-bleed cards below 768px.
+Structural pieces shared by every page: an institutional utility bar above the navy navigation, an eyebrow above each page title, page headers and section heads closed by a hairline rule, breadcrumbs on every record page, a sticky sidebar on detail pages, fieldsets with legends on forms, a danger zone below edit forms, and a three-column footer.
+
+Design rules applied across the pages: one filled primary button per screen, hairline borders instead of shadows, status pills for state, tabular figures for ids and dates, destructive actions behind a confirmation prompt, and a skip link plus visible focus rings for keyboard users. Long-form text (article bodies, the about page, the hero lead) is set in the system serif, everything else in the sans stack. The layout collapses to a single column below 1024px and to full-bleed cards below 768px, and `prefers-reduced-motion` disables every transition.
 
 ## Validation Rules
 
@@ -617,6 +619,15 @@ Contributions are welcome. Since the project has no code yet, the most valuable 
 **TBD** — the license for this project has not been chosen yet. Until a license is decided and a `LICENSE` file is added, all rights are reserved.
 
 ## Changelog
+
+### 2026-11-11 — Subpages redesigned on the design system
+
+- Every page reworked with page furniture: an institutional utility bar (faculty and department), an eyebrow above each title, page headers and section heads closed by hairline rules, and a three-column footer.
+- Detail pages (user, announcement, job posting) now share one layout: profile or article header, a definition list of record fields, and a sticky sidebar with actions and related JSON records.
+- Forms gained fieldsets with legends (`Identity`, `Contact`, `The role`, `Publishing`), helper text under each field, and a danger zone below edit forms so deletion is available while editing.
+- Lists gained table captions, mailto links, and consistent empty states; the applications table clamps cover letters instead of stretching the row.
+- Long-form text is set in the system serif (`--font-serif`), documented as the `body-editorial` role in [DESIGN.md](DESIGN.md); the rest stays in the sans stack.
+- `prefers-reduced-motion` disables transitions for users who ask for it.
 
 ### 2026-11-11 — Web interface redesign
 

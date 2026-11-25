@@ -2,35 +2,43 @@
 <%- include('../partials/nav', { active: 'users' }) %>
 
 <nav class="breadcrumb" aria-label="Breadcrumb">
-  <a href="/users">Users</a><span>/</span><%= user.username %>
+  <a href="/users">Alumni directory</a><span>/</span><%= user.username %>
 </nav>
 
 <div class="profile-header">
   <div class="avatar" aria-hidden="true"><%= initials(user.username) %></div>
   <div class="profile-header__text">
     <h1><%= user.username %></h1>
-    <p><%= user.email %></p>
+    <p>Record #<%= user.id %> · <a href="mailto:<%= user.email %>"><%= user.email %></a></p>
   </div>
 </div>
 
 <div class="detail-grid">
   <div class="detail-main">
     <div class="card">
-      <h2 class="card__title">Record</h2>
+      <h2 class="card__title">Identity</h2>
       <dl class="definition-list">
-        <div>
-          <dt>Id</dt>
-          <dd><%= user.id %></dd>
-        </div>
         <div>
           <dt>Username</dt>
           <dd><%= user.username %></dd>
         </div>
         <div>
           <dt>Email</dt>
-          <dd><%= user.email %></dd>
+          <dd><a href="mailto:<%= user.email %>"><%= user.email %></a></dd>
+        </div>
+        <div>
+          <dt>Record id</dt>
+          <dd><%= user.id %></dd>
         </div>
       </dl>
+    </div>
+
+    <div class="card">
+      <h2 class="card__title">Career history</h2>
+      <p class="card__meta">
+        Employers, job titles, and industries are part of the Career Services module and are not
+        recorded yet. When they are, they appear here in the same record layout.
+      </p>
     </div>
   </div>
 
@@ -38,7 +46,7 @@
     <div class="card">
       <h2 class="card__title">Actions</h2>
       <div class="card__footer">
-        <a class="btn btn--primary" href="/users/<%= user.id %>/edit">Edit</a>
+        <a class="btn btn--primary" href="/users/<%= user.id %>/edit">Edit record</a>
         <form method="POST" action="/users/<%= user.id %>/delete"
               onsubmit="return confirm('Delete this user? This cannot be undone.');">
           <button class="btn btn--danger" type="submit">Delete</button>
@@ -47,12 +55,25 @@
     </div>
 
     <div class="card">
-      <h2 class="card__title">Related</h2>
-      <div class="card__footer">
-        <a class="btn btn--link" href="/api/users/<%= user.id %>">JSON record</a>
-        <a class="btn btn--link" href="/api/users/<%= user.id %>/donations">Donations</a>
-        <a class="btn btn--link" href="/api/users/<%= user.id %>/job-postings">Postings</a>
-      </div>
+      <h2 class="card__title">Related records</h2>
+      <dl class="definition-list">
+        <div>
+          <dt>Donations</dt>
+          <dd><a href="/api/users/<%= user.id %>/donations">JSON</a></dd>
+        </div>
+        <div>
+          <dt>Job postings</dt>
+          <dd><a href="/api/users/<%= user.id %>/job-postings">JSON</a></dd>
+        </div>
+        <div>
+          <dt>Applications</dt>
+          <dd><a href="/api/users/<%= user.id %>/applications">JSON</a></dd>
+        </div>
+        <div>
+          <dt>API record</dt>
+          <dd><a href="/api/users/<%= user.id %>">JSON</a></dd>
+        </div>
+      </dl>
     </div>
   </aside>
 </div>

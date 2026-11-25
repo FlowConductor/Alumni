@@ -3,9 +3,11 @@
 
 <div class="page-header">
   <div class="page-header__text">
-    <h1>Alumni directory<span class="count-badge"><%= users.length %></span></h1>
+    <span class="eyebrow">Alumni directory</span>
+    <h1>Graduates on record<span class="count-badge"><%= users.length %></span></h1>
     <p class="page-subtitle">
-      Every graduate on record. This is the core tracking data the department maintains.
+      The core tracking data the department maintains for accreditation and for staying in
+      touch with its graduates.
     </p>
   </div>
   <div class="page-header__actions">
@@ -21,12 +23,13 @@
 <% } else { %>
   <div class="table-wrap">
     <table class="data">
+      <caption><%= users.length %> records, ordered by id</caption>
       <thead>
         <tr>
-          <th>Id</th>
-          <th>Username</th>
-          <th>Email</th>
-          <th>Actions</th>
+          <th scope="col">Id</th>
+          <th scope="col">Username</th>
+          <th scope="col">Email</th>
+          <th scope="col">Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -34,7 +37,7 @@
           <tr>
             <td class="num"><%= user.id %></td>
             <td><a href="/users/<%= user.id %>"><%= user.username %></a></td>
-            <td><%= user.email %></td>
+            <td><a href="mailto:<%= user.email %>"><%= user.email %></a></td>
             <td>
               <div class="actions">
                 <a class="btn btn--link" href="/users/<%= user.id %>">View</a>

@@ -2,20 +2,23 @@
 <%- include('partials/nav', { active: 'home' }) %>
 
 <section class="hero">
-  <p class="hero__tagline">Where MIS graduates stay connected.</p>
+  <span class="eyebrow">Where MIS graduates stay connected</span>
   <h1>MIS Alumni Portal</h1>
   <p class="hero__lead">
     The alumni tracking system and community portal for graduates of the Istanbul University,
     Faculty of Economics, Department of Management Information Systems. One place for the
-    department's graduate records, announcements, and career opportunities.
+    department's graduate records, its announcements, and the opportunities its alumni share.
   </p>
   <div class="hero__actions">
-    <a class="btn btn--primary" href="/users">Browse alumni</a>
+    <a class="btn btn--primary" href="/users">Browse the directory</a>
     <a class="btn btn--secondary" href="/api-docs">API documentation</a>
   </div>
 </section>
 
-<h2 class="section-title">What is in the portal today</h2>
+<div class="section-head">
+  <h2>What is in the portal today</h2>
+  <span class="section-head__meta">Three modules implemented</span>
+</div>
 
 <div class="card-grid">
   <article class="card">
@@ -55,7 +58,10 @@
   </article>
 </div>
 
-<h2 class="section-title">For developers</h2>
+<div class="section-head">
+  <h2>For developers</h2>
+  <span class="section-head__meta">JSON API</span>
+</div>
 
 <div class="card">
   <p class="card__body">
@@ -67,6 +73,7 @@
     <a class="btn btn--secondary btn--small" href="/api-docs">Open Swagger UI</a>
     <a class="btn btn--link" href="/api/users">GET /api/users</a>
     <a class="btn btn--link" href="/api/job-postings">GET /api/job-postings</a>
+    <a class="btn btn--link" href="/api/health">GET /api/health</a>
   </div>
 </div>
 

@@ -5,23 +5,52 @@
   <a href="/announcements">Announcements</a><span>/</span><%= announcement.title %>
 </nav>
 
-<article class="article">
-  <h1><%= announcement.title %></h1>
-  <p class="article__meta">
-    Published <%= formatDate(announcement.createdAt) %> · Record #<%= announcement.id %>
-  </p>
-  <div class="article__body"><%= announcement.content %></div>
-</article>
-
-<div class="card">
-  <div class="card__footer">
-    <a class="btn btn--primary" href="/announcements/<%= announcement.id %>/edit">Edit</a>
-    <a class="btn btn--secondary" href="/announcements">All announcements</a>
-    <form method="POST" action="/announcements/<%= announcement.id %>/delete"
-          onsubmit="return confirm('Delete this announcement? This cannot be undone.');">
-      <button class="btn btn--danger" type="submit">Delete</button>
-    </form>
+<div class="detail-grid">
+  <div class="detail-main">
+    <article class="article">
+      <span class="eyebrow">Announcement</span>
+      <h1><%= announcement.title %></h1>
+      <p class="article__meta">
+        Published <%= formatDate(announcement.createdAt) %> · Record #<%= announcement.id %>
+      </p>
+      <div class="article__body"><%= announcement.content %></div>
+    </article>
   </div>
+
+  <aside class="detail-side">
+    <div class="card">
+      <h2 class="card__title">Details</h2>
+      <dl class="definition-list">
+        <div>
+          <dt>Record id</dt>
+          <dd><%= announcement.id %></dd>
+        </div>
+        <div>
+          <dt>Published</dt>
+          <dd><%= formatDate(announcement.createdAt) %></dd>
+        </div>
+        <div>
+          <dt>Length</dt>
+          <dd><%= announcement.content.length %> characters</dd>
+        </div>
+      </dl>
+    </div>
+
+    <div class="card">
+      <h2 class="card__title">Actions</h2>
+      <div class="card__footer">
+        <a class="btn btn--primary" href="/announcements/<%= announcement.id %>/edit">Edit</a>
+        <a class="btn btn--secondary" href="/announcements">All announcements</a>
+      </div>
+      <div class="card__footer">
+        <form method="POST" action="/announcements/<%= announcement.id %>/delete"
+              onsubmit="return confirm('Delete this announcement? This cannot be undone.');">
+          <button class="btn btn--danger btn--small" type="submit">Delete</button>
+        </form>
+        <a class="btn btn--link" href="/api/announcements/<%= announcement.id %>">JSON record</a>
+      </div>
+    </div>
+  </aside>
 </div>
 
 <%- include('../partials/footer') %>

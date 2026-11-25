@@ -7,6 +7,7 @@
 
 <div class="page-header">
   <div class="page-header__text">
+    <span class="eyebrow">Career services</span>
     <h1><%= posting.title %></h1>
     <p class="page-subtitle">
       <%= posting.company %><% if (posting.location) { %> · <%= posting.location %><% } %>
@@ -21,30 +22,37 @@
 <div class="detail-grid">
   <div class="detail-main">
     <div class="card">
-      <h2 class="card__title">Description</h2>
+      <h2 class="card__title">About the role</h2>
       <% if (posting.description) { %>
         <div class="article__body"><%= posting.description %></div>
       <% } else { %>
-        <p class="card__meta">No description was provided for this posting.</p>
+        <p class="card__meta">
+          No description was provided for this posting. Contact the poster for details.
+        </p>
       <% } %>
     </div>
 
     <div class="card">
-      <h2 class="card__title">Applications<span class="count-badge"><%= applications.length %></span></h2>
+      <div class="section-head">
+        <h2>Applications</h2>
+        <span class="section-head__meta"><%= applications.length %> on record</span>
+      </div>
+
       <% if (applications.length === 0) { %>
         <div class="empty-state">
-          <p>No applications yet.</p>
+          <p>No applications yet. Applications appear here as alumni apply.</p>
         </div>
       <% } else { %>
         <div class="table-wrap">
           <table class="data">
+            <caption>Applicants, newest first</caption>
             <thead>
               <tr>
-                <th>Id</th>
-                <th>Applicant</th>
-                <th>Status</th>
-                <th>Cover letter</th>
-                <th>Applied</th>
+                <th scope="col">Id</th>
+                <th scope="col">Applicant</th>
+                <th scope="col">Status</th>
+                <th scope="col">Cover letter</th>
+                <th scope="col">Applied</th>
               </tr>
             </thead>
             <tbody>
@@ -55,7 +63,7 @@
                     <a href="/users/<%= application.userId %>"><%= application.applicantUsername %></a>
                   </td>
                   <td><span class="pill pill--<%= application.status %>"><%= application.status %></span></td>
-                  <td><%= application.coverLetter || '—' %></td>
+                  <td class="truncate"><%= application.coverLetter || '—' %></td>
                   <td class="num"><%= formatDate(application.createdAt) %></td>
                 </tr>
               <% }); %>
@@ -67,6 +75,9 @@
 
     <div class="card">
       <h2 class="card__title">Apply to this posting</h2>
+      <p class="card__meta">
+        Applications are recorded against your directory entry, once per posting.
+      </p>
       <form method="POST" action="/job-postings/<%= posting.id %>/apply">
         <div class="field">
           <label for="user_id">Your user id <span class="required">(required)</span></label>
@@ -89,7 +100,7 @@
       <h2 class="card__title">Details</h2>
       <dl class="definition-list">
         <div>
-          <dt>Id</dt>
+          <dt>Record id</dt>
           <dd><%= posting.id %></dd>
         </div>
         <div>
@@ -118,20 +129,29 @@
     <div class="card">
       <h2 class="card__title">Actions</h2>
       <div class="card__footer">
-        <a class="btn btn--primary" href="/job-postings/<%= posting.id %>/edit">Edit</a>
+        <a class="btn btn--primary" href="/job-postings/<%= posting.id %>/edit">Edit posting</a>
+      </div>
+      <div class="card__footer">
         <form method="POST" action="/job-postings/<%= posting.id %>/delete"
               onsubmit="return confirm('Delete this job posting? This cannot be undone.');">
-          <button class="btn btn--danger" type="submit">Delete</button>
+          <button class="btn btn--danger btn--small" type="submit">Delete</button>
         </form>
+        <a class="btn btn--link" href="/api/job-postings/<%= posting.id %>">JSON record</a>
       </div>
     </div>
 
     <div class="card">
-      <h2 class="card__title">Related</h2>
-      <div class="card__footer">
-        <a class="btn btn--link" href="/api/job-postings/<%= posting.id %>">JSON record</a>
-        <a class="btn btn--link" href="/api/job-postings/<%= posting.id %>/applications">Applications JSON</a>
-      </div>
+      <h2 class="card__title">Related records</h2>
+      <dl class="definition-list">
+        <div>
+          <dt>Applications</dt>
+          <dd><a href="/api/job-postings/<%= posting.id %>/applications">JSON</a></dd>
+        </div>
+        <div>
+          <dt>All postings</dt>
+          <dd><a href="/api/job-postings">JSON</a></dd>
+        </div>
+      </dl>
     </div>
   </aside>
 </div>
