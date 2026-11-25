@@ -1,14 +1,20 @@
 # DDD — MIS Alumni Portal (Basic Domain Design)
 
-Status: implemented. The `users`, `donate`, `announcements`, `job_postings`, and `job_applications` tables exist in MySQL (migrations 001–006 in `src/db/migrations/`). All five models are backed by their tables; Donation, Job Posting, and Job Application endpoints are implemented (JSON API, direct and nested routes). Validation rules are listed in section 7.
+Status: implemented. The `users`, `donate`, `announcements`, `job_postings`, and `job_applications` tables exist in MySQL (migrations 001–006 in `src/db/migrations/`). All five models are backed by their tables; Donation, Job Posting, and Job Application endpoints are implemented (JSON API, direct and nested routes). Validation rules are listed in section 7. User roles are designed but **not implemented** — there is no `role` column and no authentication yet (section 8).
 
 ## 1. Ubiquitous Language
 
 | Term | Meaning |
 |------|---------|
-| **User** | Anyone with an account on the portal (alumni or staff) |
+| **User** | Anyone with an account on the portal: an alumnus, a partner-company contact, or department staff. Every User has exactly one Role (section 8) |
+| **Role** | The single capacity in which a User acts: `alumni`, `employer`, `staff`, or `admin`. Designed, not yet implemented |
+| **Alumni** | A graduate of the department. The default Role for a new account |
+| **Employer** | A partner-company contact who publishes opportunities. Has no profile in the alumni directory |
+| **Department staff** | Department employees who maintain the directory and publish content |
+| **Administrator** | The account allowed to assign Roles and delete Users |
+| **Guest** | An unauthenticated visitor. Today every visitor is a Guest and every route is open |
 | **Donation** | A single act of giving money to the department or a campaign |
-| **Donor** | A User who has made at least one Donation |
+| **Donor** | A User who has made at least one Donation. Derived from the records, not a Role |
 | **Campaign** | A named fundraising effort (e.g., "Scholarship Fund") a Donation can target |
 | **Announcement** | A notice published to the alumni community (implemented; see migration 003) |
 | **Job Posting** | A job opportunity published to the MIS community by an alumnus or a partner company |
@@ -16,7 +22,7 @@ Status: implemented. The `users`, `donate`, `announcements`, `job_postings`, and
 
 ## 2. Bounded Contexts
 
-- **User Management** — registration, profiles, and account data. Owns the `users` table.
+- **User Management** — registration, profiles, account data, and **roles**. Owns the `users` table and is the only context allowed to change a Role. The other contexts reference a Role only to decide whether an action is permitted (section 8).
 - **Fundraising** — donations and campaigns. Owns the `donate` table. References users only by `user_id`.
 - **Career Services** — job postings and applications targeting the MIS community. Owns the `job_postings` and `job_applications` tables. References users by `posted_by` / `user_id`.
 
@@ -25,9 +31,10 @@ Status: implemented. The `users`, `donate`, `announcements`, `job_postings`, and
 ### User (aggregate root, User Management context)
 
 - Identity: `id`.
-- Attributes: `username`, `email`, `created_at`, `updated_at`.
-- Invariants: `username` is required and unique; `email` is required, unique, and a valid address.
-- Current reference implementation: `src/models/user.model.js`.
+- Attributes: `username`, `email`, `role` (planned), `created_at`, `updated_at`.
+- Invariants: `username` is required and unique; `email` is required, unique, and a valid address; `role` is one of `alumni`, `employer`, `staff`, `admin` and defaults to `alumni` (planned).
+- A User always has exactly one Role. Roles are described in section 8.
+- Current reference implementation: `src/models/user.model.js` (username and email only — the Role is not stored yet).
 
 ### Donation (entity, Fundraising context)
 
@@ -74,6 +81,19 @@ CREATE TABLE users (
   updated_at TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 ```
+
+#### users.role — planned, not applied
+
+| Column | Type | Constraints |
+|--------|------|-------------|
+| role | ENUM('alumni','employer','staff','admin') | NOT NULL, DEFAULT 'alumni' |
+
+```sql
+ALTER TABLE users
+  ADD COLUMN role ENUM('alumni','employer','staff','admin') NOT NULL DEFAULT 'alumni';
+```
+
+This is the migration to write when roles are implemented (planned `007_add_role_to_users.sql`). Nothing reads the column today: no code path checks a Role, and every route is open.
 
 ### donate table
 
@@ -184,7 +204,10 @@ users (1) ────< job_applications (N) >──── (1) job_postings
 
 ## 6. Future Considerations (TBD)
 
-- Passwords/authentication on `users` (e.g., a `password_hash` column) — not decided yet.
+- Passwords/authentication on `users` (e.g., a `password_hash` column) — not decided yet. Roles are meaningless without it.
+- Multi-role accounts: an alumnus who also works for the department currently collapses into `staff`. A `user_roles` join table is the escape hatch if the department needs both.
+- Audit trail for role changes: who changed whose Role, and when.
+- Role-aware UI: hide actions a Role cannot perform instead of only rejecting them server-side.
 - A separate `campaigns` table once the Fundraising module is implemented.
 - Donation receipt/payment integration (status flow: pending → completed/failed).
 - Application status flow (pending → reviewed → accepted/rejected) and notifications.
@@ -209,5 +232,63 @@ Enforced in `src/controllers/apiJobPosting.controller.js` (JSON API), `src/contr
 ### User and Job Application (summary)
 
 - **User** — `username` required and unique; `email` required, a valid address, and unique. Violations: `400` (missing/malformed) or `409` (duplicate).
+- **Role** (planned, section 8) — one of `alumni`, `employer`, `staff`, `admin`; defaults to `alumni`; only an `admin` may set it. Violations: `400` (unknown value) or `403` (not permitted).
 - **Job Application** — `job_posting_id` and `user_id` required and must reference existing rows; one application per user per posting. Violations: `400` (missing/invalid), `404` (unknown posting or user), `409` (duplicate application).
 - **Deletion** — a User with donations or applications, and a Job Posting with applications, cannot be deleted: the foreign keys restrict it and the controllers answer `409`.
+
+## 8. User Roles and Access Control
+
+Status: **designed, not implemented.** There is no `role` column, no authentication, and no authorization middleware; every route is open because the portal is assumed to run on a trusted network. The model below is the target once accounts exist, and it is written down now so that later work does not invent a second, contradictory one.
+
+### The four roles
+
+| Role | Who it is | What it is for |
+|------|-----------|----------------|
+| `alumni` | A graduate of the department. The default role of every new account. | Owns their profile, reads announcements, applies to job postings, records their own donations. |
+| `employer` | A contact person at a partner company. | Publishes postings for that company and reads the applications to them. Has no profile in the alumni directory. |
+| `staff` | Department staff: secretariat and career services. | Maintains the directory, publishes announcements, manages postings, records donations, reads reports. |
+| `admin` | Department administrator or system owner. | Everything staff can do, plus assigning roles and deleting users. |
+
+Three clarifications:
+
+- **Donor is not a role.** It is derived: a User with at least one Donation. Storing it would duplicate the `donate` table.
+- **Mentor is not a role.** It will be a relationship between two alumni when the mentorship module is built, not a capacity of the account.
+- **A posting can exist without a User.** `job_postings.posted_by` is nullable, so a partner company with no portal account posts through `staff`; an `employer` account is only needed when that company manages its own postings.
+
+### Capabilities by role
+
+| Capability | `alumni` | `employer` | `staff` | `admin` |
+|------------|----------|------------|---------|---------|
+| Read the alumni directory | community-visible fields | — | all fields | all fields |
+| Edit own profile | yes | — | yes | yes |
+| Edit another user's record | — | — | yes | yes |
+| Create a user | — | — | yes | yes |
+| Delete a user | — | — | — | yes |
+| Assign or change a role | — | — | — | yes |
+| Read announcements | yes | yes | yes | yes |
+| Publish or edit an announcement | — | — | yes | yes |
+| Publish a job posting | — | own company only | any | any |
+| Close or delete a posting | — | own postings | any | any |
+| Apply to a posting | yes | — | — | — |
+| Read applications to a posting | own applications | own postings | all | all |
+| Change an application status | — | own postings | yes | yes |
+| Record a donation | own | — | any user | any user |
+| Read donation totals | own | — | yes | yes |
+| Read accreditation analytics | — | — | yes | yes |
+
+### Rules
+
+- An account always has **exactly one** Role, and a new account always starts as `alumni`. There is no unprivileged or anonymous role inside the model: an unauthenticated visitor is a Guest (section 1) and gets read-only pages.
+- Only an `admin` assigns or changes a Role. An account can never change its own Role, which removes self-elevation as an attack path.
+- The last remaining `admin` cannot be demoted or deleted: the department must always keep one administrator.
+- Role checks belong in the controller layer, before the model is called, and must behave identically on the HTML and JSON surfaces — a role that is refused on a page is refused on the API.
+- A refusal is `403` with the same `{ error, reason, method, path }` shape as the other failures, so the 5xx Guardian and the clients need no special case.
+- Deletion stays platform-wide `admin`-only, consistent with the foreign-key restrictions in section 5: donations and applications already prevent most accidental deletions.
+
+### Implementation plan (TBD)
+
+1. Migration `007_add_role_to_users.sql`: add the `role` column (section 4), `NOT NULL DEFAULT 'alumni'`.
+2. Extend the User model to select and map `role`; add `role` to the create and update paths, admin-only.
+3. Add `password_hash` and session authentication — without it a Role is just a label.
+4. Add a `requireRole(...roles)` middleware next to the logger and the guardians, then apply it to the write routes (`POST`, `PUT`, `PATCH`, `DELETE`).
+5. Add a role column and a role selector (admin only) to the web views, and a `role` field to the `User` and `UserInput` schemas in `src/docs/openapi.js`.
